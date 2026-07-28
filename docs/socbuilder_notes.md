@@ -233,6 +233,46 @@ Crea davvero una board personalizzata registrata in MATLAB, riusando la configur
 
 ### Prossimi passi reali
 
-1. Ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream (non ancora tentato con questi fix).
+1. ~~Ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream~~ — tentato, vedi sezione seguente: nuovo blocco distinto trovato, non ancora risolto.
 2. Rendere i tre fix permanenti in modo più pulito di una chiamata manuale a ogni sessione (es. uno script di setup del progetto, o un `startup.m`).
 3. Usare `soc.sdk.BoardSupport` per registrare una vera board "PynqZ1" invece di continuare a riusare `ZedBoard` come proxy.
+
+## Bitstream FPGA — nuovo blocco distinto (non risolto): il subsystem "FPGA" non è mai stato preparato per IP Core Generation
+
+Con il toolchain ARM risolto, tentato `BuildType='Processor and FPGA'` (poi `'FPGA only'`) per ottenere anche il bitstream.
+
+### Il problema
+
+`socModelBuilder` ha una proprietà `RunExternalFPGABuild` (di default `true`) che, se lasciata al default, fa sì che `buildModel` **non lanci affatto Vivado** — prepara solo file per un lancio manuale esterno, senza generare nessun log HDL. Serve `RunExternalFPGABuild=false` per farlo girare tutto inline.
+
+Con questo settato, il software si ricompila regolarmente, ma poi:
+```
+Error using socModelBuilder/buildModel
+Unrecognized field name "bit_file".
+```
+Stesso errore identico sia con `'Processor and FPGA'` sia con `'FPGA only'`.
+
+### Diagnosi
+
+Ispezionando `socsysinfo.mat` (il file di stato che il builder tiene per il progetto): `socsysinfo.projectinfo` contiene `prj_dir, board, fullboardname, vendor, report, elf_file, build_action, sw_system` — il campo lato software (`elf_file`) è popolato correttamente, **ma non esiste nessun campo lato FPGA** (né `bit_file` né altri). `socsysinfo.modelinfo` ha solo `sys, arm_model` — nessun equivalente hardware.
+
+Trovato lo script di test interno ufficiale MathWorks che fa esattamente questo build (`toolbox/soc/supportpackages/xilinxsoc/xilinxsocexamples/whdl/socWHDLExamplesImageBuild.m`):
+```matlab
+socBuild = socModelBuilder(modelName,ProjectFolder=prjDir,BuildType="Processor and FPGA",ExternalMode=true,RunExternalFPGABuild=false);
+socBuild.EnableBitGen = enBitGen;  % true per build "Full"
+socBuild.buildModel;
+```
+Rivela 3 proprietà **nascoste** (non elencate da `properties(obj)`, ma accessibili — verificato via `metaclass(obj).PropertyList`): `EnableBitGen`, `EnablePrjGen`, `Debug`. Entrambe `EnableBitGen`/`EnablePrjGen` risultano **già `true` di default** sul nostro oggetto — non è quello il problema. Replicata la chiamata esatta (incluso `ExternalMode=true`): **stesso identico errore**, anzi ancora più precoce.
+
+Controllato il subsystem `FPGA` del modello (`get_param('Prova_1_socbuilder/FPGA','DialogParameters')`): è un Subsystem Simulink generico, **nessun parametro specifico SoC Blockset attaccato** (niente IP Core/AXI/clock/reset). `get_param(fpgaBlk,'IsHDLDut')` dà errore — il parametro non esiste sul blocco: **conferma diretta che il subsystem non è mai stato marcato/preparato come DUT HDL** per il workflow IP Core Generation, a differenza del lato software (`ComputeAlgorithm`), affinato in molte sessioni precedenti.
+
+### Due indagini parallele indipendenti, stessa conclusione
+
+- **Via GUI/introspezione**: il codice dell'app SoC Builder è **p-code cifrato** (non un `.mlapp` — verificato anche a livello di byte grezzi, solo un marcatore di versione leggibile, nessuna stringa/logica estraibile). L'app è però basata su una vera webview Chromium (CEF) che si apre anche lanciata da `matlab -batch` (rilevabile via `findall`, tag `soc_ui_ModelInfo_Window`, connessa a `https://127.0.0.1:<porta>/...uifigureappjs...`). Tentativo di leggerne il contenuto via browser bloccato dalla policy di sicurezza dell'ambiente (niente accesso a `127.0.0.1`). **Conclusione**: nessuna via scriptabile o "alla cieca" trovata — serve interazione umana reale con la finestra SoC Builder.
+- **Via script**: nessuna funzione pubblica equivalente allo step GUI "Configure IP Core Generation" trovata. Prima di fermarsi, trovato un indizio non ancora verificato: il blocco `Software to AXI4-Stream` ha `LastTargetBoard = "Custom Hardware Board"`, mentre il modello ha `HardwareBoard = ZedBoard` — un disallineamento nel blocco-ponte verso il lato FPGA, da verificare se correggibile con un `set_param` e se risolve il problema.
+
+### Stato e prossimi passi
+
+1. Verificare/correggere il disallineamento `LastTargetBoard` sul blocco `Software to AXI4-Stream` (prossimo passo immediato, non richiede GUI).
+2. Se non risolve: il passaggio "IP Core Generation" (assegnazione interfacce AXI4/clock/reset sul subsystem `FPGA`) va probabilmente completato una volta tramite interazione reale con la finestra SoC Builder — stessa natura del vecchio blocco del toolchain ARM (serviva completare un passaggio interattivo), ma stavolta è una configurazione del modello, non una registrazione di sistema.
+3. In alternativa, si può continuare a lavorare nel frattempo su sintesi Vivado diretta via Tcl sull'algoritmo MPC vero (percorso indipendente da questo blocco, già rodato nelle sessioni precedenti — vedi `docs/hdl_findings.md`).
