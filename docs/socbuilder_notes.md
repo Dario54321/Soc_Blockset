@@ -155,3 +155,84 @@ Prima di scartare l'opzione "scaricare il toolchain manualmente", è stata condo
 - Testato anche il wizard di un terzo pacchetto correlato, **"SoC Blockset Support Package for Xilinx Devices"** (mai configurato prima): la schermata "Select Embedded OS Image" offre solo due opzioni, **entrambe legate a hardware reale** — scrivere una vera SD/MMC, oppure (opzione testata concretamente) aprire lo strumento "OS Customizer", che però chiede subito di collegare una scheda fisica. Nessuna scorciatoia trovata nemmeno qui.
 
 **Conclusione**: il download manuale del compilatore è stato ottenuto con successo ed è pronto sul disco, ma **non è sufficiente da solo** — resta necessaria una vera SD card/USB per completare la registrazione tramite il wizard ufficiale. Questa strada (opzione 2 elencata sopra nelle versioni precedenti di questo documento) è quindi **esclusa** come scorciatoia praticabile.
+
+⚠️ **Questa conclusione si è rivelata sbagliata — vedi la sezione finale di questo documento.** Non serviva nessuna SD/USB: erano tre problemi software indipendenti, tutti risolti da riga di comando.
+
+## RISOLTO DEFINITIVAMENTE — build ARM completa senza SD/USB, causa radice reale di tutti i blocchi precedenti
+
+Riprendendo l'indagine con un approccio diverso (cercare file di stato/nomi di funzione invece del testo letterale dell'errore, e **chiamare direttamente** le funzioni interne anche quando il loro corpo è p-code protetto — chiamare una funzione non richiede di poterne leggere il sorgente), sono stati trovati e risolti tre problemi concreti, tutti verificati con build reali eseguite fino in fondo.
+
+### Problema 1 — il controllo "third-party tools not installed" in realtà passa già
+
+Il controllo che genera l'errore `"The required third-party tools have not been installed..."` è in `onBuildEntryHook.m` (sorgente leggibile, non protetto):
+```matlab
+instrSets = matlab.hwmgr.internal.getInstructionSetsForSpPkg(rootDir);
+if ~matlab.hwmgr.internal.areAllTpToolsInstalled(instrSets)
+    error(message('zynq:utils:AllTpToolsNotInstalled'));
+end
+```
+Chiamando queste funzioni direttamente: `areAllTpToolsInstalled` restituisce **vero**, perché riconosce il compilatore Linaro scaricato manualmente (vedi sezione precedente). Il vero problema non era mai la "registrazione" mancante di questo controllo specifico.
+
+### Problema 2 — il compilatore va reso visibile con una chiamata esplicita
+
+Il Makefile generato usa una variabile d'ambiente (`LINARO_TOOLCHAIN_6_3_1_AARCH32`) mai impostata di default. Esiste una funzione pubblica dedicata proprio a questo:
+```matlab
+codertarget.zynq.internal.addCompilerPath('6.3.1','AARCH32');
+```
+Risolve da sola il percorso del compilatore già scaricato (nota: la cartella reale ha suffisso `_soc` — `linarogcctoolchain_aarch32_soc.instrset`, non quella senza suffisso) e imposta la variabile d'ambiente. Va chiamata prima di ogni `buildModel`.
+
+### Problema 3 — bug generico di MATLAB su Windows: `system()` non cerca nella cartella corrente
+
+Dopo il fix precedente, nuovo errore: `"ComputeAlgorithm.bat" non è riconosciuto come comando interno o esterno...`. Il file `.bat` esiste davvero nella cartella di build, e lanciandolo a mano da PowerShell (nella stessa cartella) funziona senza problemi. **Causa reale, riprodotta e isolata**: `system('ComputeAlgorithm.bat')` chiamato da dentro MATLAB, nella stessa identica cartella, fallisce con lo stesso errore — a differenza di una shell interattiva, il `system()`/`dos()` di MATLAB **non include la cartella corrente nella ricerca di un eseguibile senza percorso esplicito**. Fix:
+```matlab
+setenv('PATH', ['.;' getenv('PATH')]);
+```
+Aggiunge "." (cartella corrente) al PATH usato dai processi lanciati da MATLAB. **Effetto collaterale positivo scoperto**: questo stesso bug rompeva silenziosamente anche il meccanismo automatico di collegamento del sysroot (il warning "sysroot not registered" visto in ogni tentativo precedente) — con questo fix, il flag `--sysroot=...` compare da solo nei comandi di compilazione generati, senza nessun intervento aggiuntivo.
+
+### Problema 4 — un header pubblico mancava dalla cartella giusta
+
+La compilazione falliva su un file di utilità condivisa (`iio_helper.c`, non related al nostro algoritmo) con `fatal error: iio.h: No such file or directory`. L'header esiste già sul disco (scaricato da MATLAB stesso in `3P.instrset/libiio.instrset/win64/include/iio.h`), ma il Makefile generato cerca in una cartella diversa (`toolbox/shared/libiio/base/include/`) che contiene solo header di supporto, non l'header vero. **Fix one-time, permanente**: copiare il file (nessuna licenza o registrazione richiesta, è un header pubblico già scaricato da MathWorks):
+```
+copy 3P.instrset\libiio.instrset\win64\include\iio.h  →  toolbox\shared\libiio\base\include\iio.h
+```
+
+### Risultato finale, verificato sul disco
+
+Con questi tre fix (nessuna modifica manuale al Makefile generato — viene rigenerato da zero a ogni build e funziona così com'è), lo script:
+```matlab
+cd('D:\SocBuilderBuild');
+hdlsetuptoolpath('ToolName','Xilinx Vivado', 'ToolPath','D:\Xilinx\Vivado\2022.1\bin\vivado.bat');
+codertarget.zynq.internal.addCompilerPath('6.3.1','AARCH32');
+setenv('PATH', ['.;' getenv('PATH')]);
+obj = socModelBuilder('Prova_1_socbuilder', 'ProjectFolder', 'D:\SocBuilderBuild\soc_prj', 'BuildType', 'Processor only');
+buildModel(obj);
+```
+completa l'intera pipeline: genera il codice C, compila con il vero `arm-linux-gnueabihf-gcc`, e **linka con successo un eseguibile reale**:
+```
+arm-linux-gnueabihf-gcc ... -liio -lxml2 -lz -lserialport -lusb-1.0 --sysroot=...sysroot_zynq7000... -o Prova_1_socbuilder_sw.elf ...
+```
+Verificato con il comando `file` sul risultato:
+```
+Prova_1_socbuilder_sw.elf: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 2.6.32
+```
+Un vero eseguibile Linux ARM, pronto per il Cortex-A9 dello Zynq-7020 — ottenuto interamente via software, **senza nessuna SD card o chiavetta USB fisica**.
+
+### Perché tutti i tentativi precedenti sembravano indicare "serve hardware"
+
+Il warning "sysroot not registered" e l'errore finale sulla cross-compilazione sono sempre apparsi identici in ogni tentativo, dando l'impressione di un singolo blocco strutturale legato alla registrazione del wizard. In realtà erano **tre cause indipendenti che si sommavano**, nessuna delle quali richiedeva hardware: (a) il compilatore non veniva reso visibile senza una chiamata esplicita, (b) un bug generico del `PATH` di MATLAB rompeva sia l'invocazione dei file `.bat` di build sia — quasi certamente — l'estrazione/collegamento automatico del sysroot, (c) un header pubblico non era nella cartella attesa. Il wizard "Hardware Setup" con SD/USB probabilmente risolverebbe tutti e tre come effetto collaterale (scaricando tutto in un unico flusso "sano"), ma non era l'unica via.
+
+### API trovata per completare anche la registrazione di Pynq-Z1 (esplorata, non ancora usata)
+
+Durante l'indagine, dissezionando `soc.sdk.en.setupSoftwareTools.m`, è stata trovata `soc.sdk.internal.setupSysRootForReferenceTarget(tgtObj, hwBoardName)`, usata dalla classe pubblica e documentata **`soc.sdk.BoardSupport`** (introdotta in SoC Blockset R2019b — `doc soc.sdk.BoardSupport`, workflow ufficiale per registrare board SoC personalizzate via script). Testata con successo:
+```matlab
+tgtObj = soc.sdk.BoardSupport('PynqZ1Test','Board Support for Xilinx Zynq-7000 SoC','<cartella>');
+soc.sdk.internal.setupSysRootForReferenceTarget(tgtObj,'ZedBoard');
+tgtObj.save();  % "Registering the target 'PynqZ1Test'... Done."
+```
+Crea davvero una board personalizzata registrata in MATLAB, riusando la configurazione del target Zynq-7000 di riferimento — **senza nessuna SD card**. Non ancora usata per registrare una vera "PynqZ1" definitiva (la build riuscita sopra usa ancora `ZedBoard`), ma è la via giusta per completare quell'obiettivo separato in futuro.
+
+### Prossimi passi reali
+
+1. Ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream (non ancora tentato con questi fix).
+2. Rendere i tre fix permanenti in modo più pulito di una chiamata manuale a ogni sessione (es. uno script di setup del progetto, o un `startup.m`).
+3. Usare `soc.sdk.BoardSupport` per registrare una vera board "PynqZ1" invece di continuare a riusare `ZedBoard` come proxy.
