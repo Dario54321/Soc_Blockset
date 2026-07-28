@@ -269,10 +269,17 @@ Controllato il subsystem `FPGA` del modello (`get_param('Prova_1_socbuilder/FPGA
 ### Due indagini parallele indipendenti, stessa conclusione
 
 - **Via GUI/introspezione**: il codice dell'app SoC Builder è **p-code cifrato** (non un `.mlapp` — verificato anche a livello di byte grezzi, solo un marcatore di versione leggibile, nessuna stringa/logica estraibile). L'app è però basata su una vera webview Chromium (CEF) che si apre anche lanciata da `matlab -batch` (rilevabile via `findall`, tag `soc_ui_ModelInfo_Window`, connessa a `https://127.0.0.1:<porta>/...uifigureappjs...`). Tentativo di leggerne il contenuto via browser bloccato dalla policy di sicurezza dell'ambiente (niente accesso a `127.0.0.1`). **Conclusione**: nessuna via scriptabile o "alla cieca" trovata — serve interazione umana reale con la finestra SoC Builder.
-- **Via script**: nessuna funzione pubblica equivalente allo step GUI "Configure IP Core Generation" trovata. Prima di fermarsi, trovato un indizio non ancora verificato: il blocco `Software to AXI4-Stream` ha `LastTargetBoard = "Custom Hardware Board"`, mentre il modello ha `HardwareBoard = ZedBoard` — un disallineamento nel blocco-ponte verso il lato FPGA, da verificare se correggibile con un `set_param` e se risolve il problema.
+- **Via script**: nessuna funzione pubblica equivalente allo step GUI "Configure IP Core Generation" trovata. Trovato un indizio plausibile (vedi sotto), poi verificato e scartato.
 
-### Stato e prossimi passi
+### Indizio verificato e scartato: `LastTargetBoard`
 
-1. Verificare/correggere il disallineamento `LastTargetBoard` sul blocco `Software to AXI4-Stream` (prossimo passo immediato, non richiede GUI).
-2. Se non risolve: il passaggio "IP Core Generation" (assegnazione interfacce AXI4/clock/reset sul subsystem `FPGA`) va probabilmente completato una volta tramite interazione reale con la finestra SoC Builder — stessa natura del vecchio blocco del toolchain ARM (serviva completare un passaggio interattivo), ma stavolta è una configurazione del modello, non una registrazione di sistema.
-3. In alternativa, si può continuare a lavorare nel frattempo su sintesi Vivado diretta via Tcl sull'algoritmo MPC vero (percorso indipendente da questo blocco, già rodato nelle sessioni precedenti — vedi `docs/hdl_findings.md`).
+Il blocco `Software to AXI4-Stream` aveva `LastTargetBoard = "Custom Hardware Board"` mentre il modello ha `HardwareBoard = ZedBoard`. **Corretto con successo** (`set_param(..., 'LastTargetBoard', 'ZedBoard')` — nessuna callback associata al parametro, si applica senza problemi) e ripetuto il build con una `ProjectFolder` completamente nuova (per escludere cache sporca): **stesso identico errore** `Unrecognized field name "bit_file"`, stessa posizione esatta. Il lato software si ricompila comunque anche con `BuildType='FPGA only'`. **`LastTargetBoard` non era la causa.**
+
+### Conclusione definitiva
+
+Confermato da due indagini indipendenti e 4 tentativi totali: **il passaggio "IP Core Generation" (assegnazione interfacce AXI4/clock/reset sul subsystem `FPGA`) non è mai stato completato per questo modello, e non esiste una via scriptabile per completarlo.** Va fatto una volta tramite interazione reale (mouse/tastiera) con la finestra SoC Builder (`socBuilder('Prova_1_socbuilder')`) sulla sessione desktop vera — stessa natura del vecchio blocco del toolchain ARM (serviva completare un passaggio interattivo), ma stavolta è una configurazione del modello, non una registrazione di sistema. Non riaprire questo filone senza nuovi indizi concreti.
+
+### Le due opzioni reali
+
+1. Aprire `socBuilder('Prova_1_socbuilder')` e completare a mano il passaggio "IP Core Generation"/configurazione FPGA.
+2. Nel frattempo, lavorare su sintesi Vivado diretta via Tcl sull'algoritmo MPC vero (percorso indipendente da questo blocco, già rodato nelle sessioni precedenti — vedi `docs/hdl_findings.md`).
