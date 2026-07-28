@@ -116,6 +116,28 @@ Controllato quali Add-On risultano già installati (`matlab.addons.installedAddo
    ```
    Nel nostro caso, dopo aver annullato solo il passo 3, risultava comunque installato **"HDL Coder Support Package for Xilinx Zynq Platform"** — confermato che annullare la sola scrittura della SD non cancella il resto.
 
+## Il vero blocco: manca il compilatore ARM Linux vero e proprio
+
+Dopo aver completato parzialmente il wizard "Hardware Setup" (annullando solo la schermata di scrittura SD card, per cui serve una vera SD/USB fisica che non era disponibile), `buildModel` dà ancora lo stesso errore. Controllando i file scaricati sul disco:
+
+- ✅ **Sysroot** (le librerie di sistema del target) — già scaricato.
+- ✅ **Immagine di boot SD** per ZedBoard — già scaricata.
+- ❌ **Il vero compilatore GCC per ARM Linux** (`arm-linux-gnueabihf-gcc` o simile) — **non presente**. L'unico compilatore ARM trovato sul disco è quello per Arduino (`arm-none-eabi-gcc`), completamente diverso: è per microcontrollori senza sistema operativo, non compatibile con Linux embedded.
+
+Il download del vero compilatore avviene probabilmente in un passo del wizard **successivo** a quello di scrittura della SD card — che quindi va completato per intero (non solo annullato) per ottenere il compilatore.
+
+### Tentativo di aggirare il requisito "SD card fisica" con un disco virtuale — non ha funzionato
+
+Provato a creare un file VHD (disco virtuale) via `diskpart`, montarlo come unità e usarlo al posto di una vera SD nel wizard. **Non ha funzionato**, a nessuna dimensione (provato 4GB e 4.1GB): un disco montato da un file VHD risulta sempre classificato da Windows come `DriveType: Fixed` (non "Removable"), indipendentemente dai parametri usati per crearlo — è una limitazione strutturale (la classificazione "rimovibile" dipende dal vero controller USB/SD fisico sottostante, che un file VHD non ha). Il wizard filtra evidentemente solo le unità genuinamente rimovibili.
+
+*Nota per chi prova a fare lo stesso*: l'icona "Espelli" che Esplora Risorse mostra per i dischi VHD montati non è un indizio affidabile — è solo una comodità dell'interfaccia per i VHD, non riflette la vera classificazione di sistema (verificabile con `Get-Volume`/`Get-PhysicalDisk` in PowerShell).
+
+## Le opzioni rimaste per completare il compilatore ARM
+
+1. **Procurarsi una vera chiavetta USB o SD card** e ripetere il wizard per intero — la strada più semplice.
+2. **Scaricare il toolchain manualmente** (es. da Linaro) e provare a registrarlo senza passare dal wizard — non ancora verificato se `buildModel` lo accetterebbe.
+3. Mettere in pausa questo aspetto specifico e lavorare nel frattempo su altre parti del progetto (es. il lato FPGA della build, indipendente da questo).
+
 ## Prossimo passo
 
-Ripetuto `buildModel(obj)` sull'oggetto `socModelBuilder` già configurato, per vedere se ora supera il punto in cui si era fermato (mancanza del toolchain ARM) — esito in corso di verifica.
+Indagare se esiste un modo per registrare un toolchain manualmente, cercando nel codice sorgente del toolbox cosa verifica esattamente `buildModel` per decidere se il compilatore è installato.
