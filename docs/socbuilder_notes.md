@@ -140,6 +140,18 @@ Cercato nel codice del toolbox (`grep` mirato su `toolbox/shared/soc`, `toolbox/
 
 ## Le opzioni rimaste per completare il compilatore ARM
 
-1. **Procurarsi una vera chiavetta USB o SD card** e ripetere il wizard per intero (compresa la schermata di scrittura SD) — l'unica strada verificata come potenzialmente risolutiva, dato che `'FPGA only'` non la aggira.
-2. **Scaricare il toolchain manualmente** (es. da Linaro) e provare a registrarlo senza passare dal wizard — non ancora tentato, esito incerto.
-3. Mettere in pausa questo aspetto specifico e lavorare nel frattempo su altre parti del progetto che non richiedono il toolchain ARM — es. sintesi Vivado diretta (via TCL, bypassando `socModelBuilder` interamente) sull'algoritmo MPC vero quando sarà pronto, o affinamento della demo di simulazione.
+1. **Procurarsi una vera chiavetta USB o SD card** e ripetere il wizard per intero (compresa la schermata di scrittura SD) — l'unica strada verificata come potenzialmente risolutiva.
+2. Mettere in pausa questo aspetto specifico e lavorare nel frattempo su altre parti del progetto che non richiedono il toolchain ARM — es. sintesi Vivado diretta (via TCL, bypassando `socModelBuilder` interamente) sull'algoritmo MPC vero quando sarà pronto, o affinamento della demo di simulazione.
+
+## Tentativo di download manuale del toolchain — analisi approfondita, nessuna scorciatoia trovata
+
+Prima di scartare l'opzione "scaricare il toolchain manualmente", è stata condotta un'indagine approfondita nel codice reale di MATLAB (non supposizioni) per capire se fosse possibile registrare il compilatore ARM senza passare dal wizard con la SD card.
+
+**Cosa è stato trovato e verificato**:
+- Il manifest interno di SoC Blockset (`toolbox/soc/supportpackages/xilinxsoc/thirdpartytools/instrset/linarogcctoolchain_aarch32.instrset/win64/win64.xml`) indica il vero compilatore richiesto: **Linaro GCC 6.3.1 per `arm-linux-gnueabihf`**, scaricabile direttamente dai server MathWorks (`ssd.mathworks.com`, nessun login richiesto), con un checksum di verifica.
+- Il file è stato **scaricato, verificato (checksum MD5 combaciante) ed estratto** nella cartella dove MATLAB se lo aspetta (`3P.instrset/linarogcctoolchain_aarch32.instrset/`) — e il compilatore **funziona davvero** (`arm-linux-gnueabihf-gcc.exe -dumpversion` → `6.3.1`).
+- **Nonostante questo, `buildModel` continua a dare lo stesso errore identico**, incluso l'avviso "sysroot not registered". Conclusione: MATLAB non fa una scansione automatica dei file per "scoprire" il toolchain — serve una registrazione interna esplicita (una preferenza/stato scritto dal wizard stesso), che i soli file sul disco non attivano.
+- Cercato nel codice il punto esatto che scrive/legge questa registrazione — non trovato in nessun file di testo cercabile, né nell'installazione base di MATLAB né nei support package: quasi certamente dentro codice compilato/protetto (p-code) di MathWorks, stesso esito già visto per altri controlli interni di questo toolbox.
+- Testato anche il wizard di un terzo pacchetto correlato, **"SoC Blockset Support Package for Xilinx Devices"** (mai configurato prima): la schermata "Select Embedded OS Image" offre solo due opzioni, **entrambe legate a hardware reale** — scrivere una vera SD/MMC, oppure (opzione testata concretamente) aprire lo strumento "OS Customizer", che però chiede subito di collegare una scheda fisica. Nessuna scorciatoia trovata nemmeno qui.
+
+**Conclusione**: il download manuale del compilatore è stato ottenuto con successo ed è pronto sul disco, ma **non è sufficiente da solo** — resta necessaria una vera SD card/USB per completare la registrazione tramite il wizard ufficiale. Questa strada (opzione 2 elencata sopra nelle versioni precedenti di questo documento) è quindi **esclusa** come scorciatoia praticabile.
