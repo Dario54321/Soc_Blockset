@@ -1,0 +1,13 @@
+# Artefatti rigenerabili da script (regola R4): non si versionano.
+# `gen_vectors` li ricostruisce con un comando, seed fisso.
+test/*.mat
+
+# Output di generazione e sintesi
+hdlsrc/
+hdl_prj/
+slprj/
+vivado/vivado_proj/
+vivado/.Xil/
+*.jou
+*.log
+*.slxc

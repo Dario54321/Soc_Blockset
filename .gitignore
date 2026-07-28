@@ -1,7 +1,10 @@
 # MATLAB/Simulink cache and generated code
 *.slxc
 slprj/
-Prova_1_profiling/
+
+# Profiling dei task prodotto dal Task Manager di SoC Blockset a ogni
+# simulazione (una cartella nuova per ogni run): rigenerabile, non si versiona.
+*_profiling/
 
 # Vivado generated project artifacts (rigenerabili dagli .slx + .tcl)
 vivado_proj/
