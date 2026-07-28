@@ -55,7 +55,7 @@ Inoltre — scoperta confrontando un esempio ufficiale MathWorks funzionante —
 - Applicare gli stessi principi (canale dati, fixed-point, task/eventi) all'algoritmo MPC vero, non solo alla demo con due matrici.
 - Valutare se e come usare la Pynq-Z1 come scheda reale (la sua registrazione come "board" in MATLAB risulta al momento incompleta/da sistemare — nel frattempo si usa `ZedBoard`, stesso chip Zynq-7020, come riferimento per i test).
 
-## Note per chi riprende questo lavoro (anche una futura sessione Claude senza contesto)
+## Note per chi riprende questo lavoro 
 
 - Il file `.gitignore` esclude deliberatamente le cartelle generate/rigenerabili (cache MATLAB, progetti Vivado completi, codice HDL intermedio) — solo i modelli `.slx` sorgente, gli script `.tcl` di sintesi e i report finali sono tracciati.
 - Ogni volta che si fa un push su questo repository, README e documentazione in `docs/` vanno tenuti aggiornati con lo stato più recente — è una regola esplicita del proprietario del progetto.
