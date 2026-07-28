@@ -102,6 +102,20 @@ Controllato quali Add-On risultano già installati (`matlab.addons.installedAddo
 
 ("AMD" perché Xilinx è stata acquisita da AMD — è lo stesso ecosistema Zynq/Xilinx di sempre, solo il nome del produttore nel catalogo è cambiato.)
 
-## Prossimo passo aperto
+## Come è andato il wizard "Hardware Setup" nella pratica
 
-Installazione del pacchetto sopra in corso (via Add-Ons Manager → Setup, download + probabile accordo di licenza — non scriptabile da riga di comando). Una volta completata, ripetere `buildModel(obj)` sull'oggetto `socModelBuilder` già configurato — a quel punto si dovrebbe ottenere un eseguibile ARM reale, pronto per essere caricato sulla scheda.
+1. **Scelta board**: tra ZC702, ZC706, ZedBoard, ZCU102, VCK190 → **ZedBoard** (stesso chip xc7z020 della Pynq-Z1 — il toolchain dipende dal chip, non dalla board esatta, quindi va bene anche se Pynq-Z1 non è tra le opzioni).
+2. **Scelta scheda di rete (NIC)**: serve solo per la futura comunicazione con la scheda fisica — se non la possiedi ancora, scegli semplicemente la tua scheda Ethernet fisica reale (non VPN virtuali, non Bluetooth). Si può cambiare più avanti.
+3. **Schermata "Select a Drive" (scrittura immagine SD boot)**: richiede una vera SD card fisica in un lettore. **Se non hai la scheda fisica, questo passo va annullato ("Cancel")** — non è necessario per installare solo il toolchain di compilazione.
+
+   ⚠️ **Attenzione di sicurezza**: questo campo vuole una vera SD **rimovibile**, mai una partizione del disco fisso locale (anche se contiene un sistema Linux) — selezionarla per errore rischierebbe di sovrascriverla con l'immagine di boot della scheda.
+
+4. **Verifica che annullare quella schermata non comprometta l'installazione**: usare `matlabshared.supportpkg.getInstalled` (NON `matlab.addons.installedAddons`, che non mostra i support package hardware) per controllare cosa risulta davvero installato:
+   ```matlab
+   matlabshared.supportpkg.getInstalled
+   ```
+   Nel nostro caso, dopo aver annullato solo il passo 3, risultava comunque installato **"HDL Coder Support Package for Xilinx Zynq Platform"** — confermato che annullare la sola scrittura della SD non cancella il resto.
+
+## Prossimo passo
+
+Ripetuto `buildModel(obj)` sull'oggetto `socModelBuilder` già configurato, per vedere se ora supera il punto in cui si era fermato (mancanza del toolchain ARM) — esito in corso di verifica.
