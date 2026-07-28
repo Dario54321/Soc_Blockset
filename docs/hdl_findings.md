@@ -50,3 +50,19 @@ Il numero rilevante per il vero costo del calcolo è **~3.8 ns** (solo il DSP48)
 - Lo Zynq-7020 ha **220 DSP48** in totale. Ogni moltiplicazione fixed-point concorrente ne consuma circa 1. Questo dà un limite superiore diretto: se l'algoritmo MPC richiede più di ~220 moltiplicazioni parallele, bisognerà serializzarne alcune (più cicli di clock, meno parallelismo) oppure ottimizzare l'algoritmo.
 - Operazioni di puro "instradamento/riorganizzazione" (selezione di sotto-matrici, trasposizioni, ecc., senza aritmetica) sono sostanzialmente gratuite in hardware — non è necessario preoccuparsi della loro area.
 - La virgola mobile reale (floating-point) richiede un supporto IP dedicato più costoso — va evitata se il fixed-point offre precisione sufficiente per l'algoritmo di controllo.
+
+## Risultato 3 — DUT completo del modello SoC Blockset (`ComputeCore`, il reshape lato FPGA), sintesi Vivado reale
+
+Dopo aver risolto il blocco toolchain ARM e scoperto le regole di "IP Core Generation" di SoC Blockset (vedi `docs/socbuilder_notes.md`), il blocco `FPGA_HW` del modello `Prova_1_socbuilder` è stato sintetizzato con Vivado reale (bypassando `socModelBuilder`, stesso metodo TCL diretto usato per i Risultati 1-2), per verificare che il DUT costruito e corretto fosse davvero sintetizzabile, non solo passasse i controlli del validatore.
+
+Metodo: il DUT (blocco MATLAB Function che ricompone lo stream in `matA`/`matB`) è stato incapsulato in un Subsystem (`Simulink.BlockDiagram.createSubsystem`, richiesto da HDL Coder — non genera codice per un MATLAB Function "nudo"), generato VHDL reale con `makehdl` (con `UseFloatingPoint=on` per gestire i segnali `double` senza cambiarne il tipo), poi sintetizzato via script Tcl diretto.
+
+```
+Slice LUTs: 0 / 53200
+Registri:   0 / 106400
+DSP:        0 / 220
+```
+
+**Zero risorse**, coerente con il Risultato 1: questo pezzo del modello non fa aritmetica, solo reshape/ricomposizione dello stream (la moltiplicazione vera è lato software/ARM in questo modello didattico). Ogni percorso nel report timing (es. `readFromMem[0][0]→matA[0,0][0]`, `streamEnable→doneOut1/doneOut2`) mostra **0 logic levels, 0.973 ns** di puro routing — stesso valore già misurato per il passthrough enable→done, confermato come riferimento stabile per questo tipo di percorso (buffer I/O, non un vero calcolo).
+
+**Perché conta**: dimostra che il flusso completo — dal modello Simulink SoC Blockset, attraverso le regole di IP Core Generation scoperte oggi, fino a un vero report di sintesi Vivado — funziona end-to-end su questa installazione, senza dipendere dal validatore p-code di `socModelBuilder`. Metodo riusabile quando si sintetizzerà il vero algoritmo MPC.
