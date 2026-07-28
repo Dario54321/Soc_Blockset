@@ -88,6 +88,20 @@ Il pipeline arriva molto lontano prima di fermarsi:
 
 Questo significa: **il modello e il pipeline di generazione software funzionano correttamente** — quello che manca è il **toolchain di cross-compilazione ARM** (il compilatore che trasforma il codice C generato in un eseguibile per il processore della scheda, lanciato da un PC Windows/x86). Va installato tramite il wizard interattivo "Hardware Setup" (MATLAB Home → Add-Ons → Manage Add-Ons → Setup) — un passo che richiede probabilmente una connessione internet per scaricare il toolchain, e la registrazione di un "sysroot" (l'insieme di header/librerie del sistema operativo target) valido per la scheda scelta.
 
+## Quale pacchetto installare per il toolchain ARM
+
+Controllato quali Add-On risultano già installati (`matlab.addons.installedAddons`): solo il toolbox base "Embedded Coder", nessun support package specifico per Xilinx/Zynq. Nell'Add-Ons Manager compaiono 5 pacchetti simili per nome — solo uno è quello giusto:
+
+| Pacchetto | Adatto? | Perché |
+|---|---|---|
+| HDL Coder Support Package for Xilinx **RFSoC** Devices | No | Solo schede RFSoC, non Zynq-7000 generico |
+| HDL Coder Support Package for **Intel** FPGA Boards | No | Intel/Altera, non Xilinx |
+| HDL Coder Support Package for Xilinx **FPGA Boards** | No | Solo workflow IP Core Generation puro, niente software embedded/ARM |
+| HDL Coder Support Package for **Intel** FPGA and SoC Devices | No | Intel, non Xilinx |
+| **HDL Coder Support Package for AMD FPGA and SoC Devices** | **Sì** | Unico che menziona esplicitamente "Embedded Software" oltre all'HDL — include il toolchain di cross-compilazione ARM per il lato processore delle schede SoC (Zynq) |
+
+("AMD" perché Xilinx è stata acquisita da AMD — è lo stesso ecosistema Zynq/Xilinx di sempre, solo il nome del produttore nel catalogo è cambiato.)
+
 ## Prossimo passo aperto
 
-Installare il toolchain di cross-compilazione ARM (via Hardware Setup) e riprovare `buildModel` — a quel punto si dovrebbe ottenere un eseguibile ARM reale, pronto per essere caricato sulla scheda.
+Installazione del pacchetto sopra in corso (via Add-Ons Manager → Setup, download + probabile accordo di licenza — non scriptabile da riga di comando). Una volta completata, ripetere `buildModel(obj)` sull'oggetto `socModelBuilder` già configurato — a quel punto si dovrebbe ottenere un eseguibile ARM reale, pronto per essere caricato sulla scheda.
