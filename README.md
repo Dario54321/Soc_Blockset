@@ -11,6 +11,7 @@ Questo repository contiene il percorso di apprendimento e sperimentazione che po
 - **Modello didattico completo e funzionante in simulazione**: `Prova_1.slx`. Calcola il prodotto di due matrici (3x3) sul lato software (rappresentando l'ARM), lo converte in un formato trasmissibile bit-esatto, lo invia via **AXI4-Stream** (protocollo standard ARM AMBA) al lato FPGA, dove viene ricomposto.
 - **Risorse hardware e tempi reali misurati** con sintesi Vivado 2022.1 vera (non stime teoriche) — vedi [`docs/hdl_findings.md`](docs/hdl_findings.md) per il dettaglio completo.
 - **Infrastruttura di build reale (`socBuilder`)** in costruzione: risolto un blocco architetturale importante che impediva di generare software+bitstream — vedi sezione sotto e [`docs/socbuilder_notes.md`](docs/socbuilder_notes.md).
+- **Guida pratica riusabile**: [`docs/vivado_synthesis_howto.md`](docs/vivado_synthesis_howto.md) — passo-passo, con i comandi esatti, per generare HDL da un modello Simulink SoC Blockset e sintetizzarlo in Vivado reale, bypassando `socModelBuilder`. È il metodo da riusare per il vero algoritmo MPC.
 
 ## Perché SoC Blockset e come funziona (in breve)
 
