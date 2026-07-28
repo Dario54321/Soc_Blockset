@@ -50,7 +50,8 @@ Inoltre — scoperta confrontando un esempio ufficiale MathWorks funzionante —
 
 ## Prossimi passi
 
-- Completare la generazione reale (software ARM + bitstream FPGA) tramite `socBuilder` — l'infrastruttura ora compila correttamente, resta da eseguire i passaggi di build veri (probabile richieda l'interfaccia grafica interattiva).
+- **Installare il toolchain di cross-compilazione ARM** (via MATLAB Add-Ons Manager → Hardware Setup) — è l'unico pezzo mancante per completare davvero la generazione software: il pipeline (`socModelBuilder`/`buildModel`) genera correttamente il sistema software e il codice C reale dell'algoritmo, fermandosi solo alla compilazione finale per mancanza del compilatore ARM installato.
+- Una volta installato il toolchain, ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream.
 - Applicare gli stessi principi (canale dati, fixed-point, task/eventi) all'algoritmo MPC vero, non solo alla demo con due matrici.
 - Valutare se e come usare la Pynq-Z1 come scheda reale (la sua registrazione come "board" in MATLAB risulta al momento incompleta/da sistemare — nel frattempo si usa `ZedBoard`, stesso chip Zynq-7020, come riferimento per i test).
 

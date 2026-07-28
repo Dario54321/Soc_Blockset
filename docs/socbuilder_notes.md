@@ -59,6 +59,35 @@ ModelloPrincipale (root)
                                                                           └── vero algoritmo (es. Stream Write)
 ```
 
+## La build vera si può scriptare: `socModelBuilder`
+
+`socBuilder(nomemodello)` è solo un **lanciatore di interfaccia grafica** (apre l'app SoC Builder e ci carica dentro il modello) — non ha parametri per eseguire una build reale da riga di comando.
+
+L'oggetto giusto per farlo davvero è **`socModelBuilder`** (introdotto in R2023a):
+
+```matlab
+obj = socModelBuilder(nomemodello, 'ProjectFolder', percorso, 'BuildType', 'Processor only');
+buildModel(obj);
+```
+
+`BuildType` può essere `'Processor only'` (solo software ARM, il più veloce da testare), `'FPGA only'`, o `'Processor and FPGA'` (build completa).
+
+**Attenzione al percorso**: `ProjectFolder` **non accetta percorsi con spazi** — se il proprio nome utente Windows contiene uno spazio (es. `C:\Users\Nome Cognome\...`), va usata una cartella su un percorso pulito (es. `D:\NomeCartella\`, senza spazi) sia per il modello sia per `ProjectFolder`.
+
+### Risultato ottenuto con `BuildType='Processor only'`
+
+Il pipeline arriva molto lontano prima di fermarsi:
+1. Genera il sistema software estratto dal modello completo (`<nomemodello>_sw.slx`).
+2. Genera **codice C reale** per l'algoritmo (Model Reference `ComputeAlgorithm`): `.c`/`.h` completi, tramite Embedded Coder.
+3. Si ferma solo alla cross-compilazione finale, con un errore chiaro:
+   ```
+   The required third-party tools have not been installed during hardware setup.
+   Please install the tools to deploy the model to hardware. To start the hardware
+   setup process, open Add-Ons Manager.
+   ```
+
+Questo significa: **il modello e il pipeline di generazione software funzionano correttamente** — quello che manca è il **toolchain di cross-compilazione ARM** (il compilatore che trasforma il codice C generato in un eseguibile per il processore della scheda, lanciato da un PC Windows/x86). Va installato tramite il wizard interattivo "Hardware Setup" (MATLAB Home → Add-Ons → Manage Add-Ons → Setup) — un passo che richiede probabilmente una connessione internet per scaricare il toolchain, e la registrazione di un "sysroot" (l'insieme di header/librerie del sistema operativo target) valido per la scheda scelta.
+
 ## Prossimo passo aperto
 
-`socBuilder` si avvia ma è fondamentalmente un'app interattiva (GUI con passaggi guidati) — lanciata senza schermo si inizializza soltanto, senza eseguire i veri passaggi di generazione software/bitstream. Completare la build reale richiede probabilmente l'interfaccia grafica interattiva, oppure trovare l'API di scripting corretta per pilotarla in modo headless (non ancora individuata con certezza in questa installazione).
+Installare il toolchain di cross-compilazione ARM (via Hardware Setup) e riprovare `buildModel` — a quel punto si dovrebbe ottenere un eseguibile ARM reale, pronto per essere caricato sulla scheda.
