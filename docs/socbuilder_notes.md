@@ -283,3 +283,38 @@ Confermato da due indagini indipendenti e 4 tentativi totali: **il passaggio "IP
 
 1. Aprire `socBuilder('Prova_1_socbuilder')` e completare a mano il passaggio "IP Core Generation"/configurazione FPGA.
 2. Nel frattempo, lavorare su sintesi Vivado diretta via Tcl sull'algoritmo MPC vero (percorso indipendente da questo blocco, già rodato nelle sessioni precedenti — vedi `docs/hdl_findings.md`).
+
+## Aggiornamento — trovata (parzialmente) una via scriptabile, poi fermata per scelta strategica
+
+La conclusione sopra ("nessuna via scriptabile") si è rivelata incompleta. Riprendendo l'indagine con la funzione ufficiale `Simulink.SubSystem.convertToModelReference` (diversa da `copyContentsToBlockDiagram`, che copia il contenuto ma non sostituisce il blocco), il subsystem `FPGA` è stato convertito con successo in un vero Model Reference. Nota tecnica: il nome `FPGA` è riservato (collide con la funzione toolbox `fpga.m`) — va usato un nome diverso per il modello referenziato.
+
+### Le 4 regole scoperte, per confronto diretto con l'esempio ufficiale MathWorks
+
+Copiando (solo per diagnosi, non nel repo) l'esempio ufficiale `soc_swhw_stream_top`/`_fpga`/`_proc` e confrontandolo blocco per blocco col nostro modello, sono state scoperte 4 regole strutturali del validatore SoC Builder Gen, mai documentate ufficialmente, ciascuna trovata facendo avanzare l'errore di un passo:
+
+1. **Device type**: il modello FPGA referenziato deve avere `ProdHWDeviceType`/`TargetHWDeviceType = ASIC/FPGA->ASIC/FPGA` e `HardwareBoard = None` — non ereditare `ARM Compatible->ARM Cortex` dalla conversione automatica Subsystem→Model Reference (succede di default).
+2. **"Only subsystems can be IP"**: blocchi `Display`/Scope a livello root del modello FPGA non sono ammessi — vanno rimossi (sono ausili di simulazione, non hanno senso per la sintesi hardware).
+3. **Connessione esclusiva al DUT** (identifier errore: `soc:msgs:RegPortNotConnctdToDUT`): ogni "Register port" (segnale mappato su registro AXI4-Lite, es. `StreamEnable`) deve collegarsi **esclusivamente** al DUT — nessuna diramazione parallela verso altri blocchi. Verificato: nel riferimento ufficiale `streamEnable` ha un'unica destinazione (porta del DUT), mai un fan-out diretto.
+4. **Uscite del DUT non condivisibili** (identifier: `soc:msgs:dutPortConnectMultipleBlks`): ogni uscita del DUT può avere **una sola** destinazione — serve una porta dedicata per ciascuna.
+
+### Come sono state applicate le regole 3 e 4 (e il rischio che comportano)
+
+Il DUT nel nostro modello (`FPGA_HW/MATLAB Function`) è un vero blocco MATLAB Function (Stateflow), non un subsystem qualsiasi. Per soddisfare le regole 3-4 è stata modificata la sua function: aggiunto un argomento `streamEnable` (in ingresso) e due uscite dedicate `doneOut1`/`doneOut2` che lo restituiscono in pass-through, senza usarlo nel calcolo reale (`matA`/`matB` restano invariati).
+
+**Questo soddisfa il vincolo topologico ma non la semantica**: `streamEnable` è tipicamente un segnale di controllo/gating (es. "adesca" un flusso DMA prima dei dati validi) — instradarlo come pass-through vuoto attraverso il DUT non implementa nessun blocco/gating reale. Per la demo (streamEnable non era usato nemmeno prima della modifica) è innocuo, ma è un pattern da **non copiare acriticamente sull'algoritmo MPC vero**, dove ignorare un enable/valid sarebbe un bug serio. Non ancora fatta una verifica numerica A/B (simulazione della versione modificata contro quella precedente) per confermare che l'output è rimasto identico.
+
+### Il nuovo errore raggiunto, e perché ci si è fermati qui
+
+Applicando tutte e 4 le regole, il build (`BuildType='FPGA only'`, `RunExternalFPGABuild=false`) supera per la prima volta ogni errore di topologia/wiring e arriva a: `Invalid HDL Implementation Parameter 'IPCoreVersion' for the block 'FPGA_HW/MATLAB Function'` (identifier: `hdlcommon:hdlcommon:badparam`) — un parametro di generazione IP Core HDL Coder, categoria di errore completamente diversa dalle precedenti (non più topologia del modello).
+
+**Decisione presa dopo una revisione strategica approfondita (multi-agente, tre lenti indipendenti: rischio/correttezza, efficienza, allineamento con l'obiettivo)**: **fermarsi qui**, non inseguire `IPCoreVersion` né le regole successive che il validatore rivelerà. Motivazioni principali:
+- Le 4 regole scoperte sono un *metodo* riusabile, ma non uno stato di avanzamento trasferibile: il DUT dell'MPC vero avrà porte/segnali propri, il lavoro di "diff contro il riferimento" andrebbe comunque rifatto da zero.
+- La sintesi Vivado diretta via Tcl (bypassando `socModelBuilder` interamente) fornisce già tutti i numeri necessari per dimensionare l'MPC, senza dipendere da questo validatore opaco.
+- Pattern di rendimenti calanti: 4 categorie di vincolo distinte scoperte in meno di un'ora, l'ultima di natura diversa dalle precedenti — nessuna garanzia che sia l'ultima.
+- Un bitstream ottenuto su ZedBoard-proxy andrebbe comunque rifatto una volta registrata la vera Pynq-Z1.
+
+### Prossimi passi reali, in ordine
+
+1. (Consigliato, non ancora fatto) Verifica numerica A/B di `FPGA_HW.slx` modificato contro la versione pre-modifiche, per confermare che il comportamento è rimasto identico prima di fidarsene ulteriormente.
+2. Applicare le 4 regole scoperte direttamente al subsystem FPGA dell'algoritmo MPC vero, quando pronto — usando la sintesi Vivado diretta via Tcl come via principale, non più questo validatore.
+3. Registrazione reale di Pynq-Z1 (via `soc.sdk.BoardSupport`), rimandata a quando sarà rilevante.
