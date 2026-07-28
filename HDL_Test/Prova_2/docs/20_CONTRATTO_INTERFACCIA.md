@@ -210,14 +210,68 @@ strumenti e sostituire un lato non obbliga a rigenerare l'altro.
 
 ## 8. Cosa serve dall'altro lato per chiudere questa bozza
 
+### Sul protocollo
 1. `enable` è a livello durante il calcolo, oppure esiste un segnale di validità
    del risultato? *(determina come deriviamo `done`)*
 2. La latenza è costante o dipende dai dati? *(non cambia il contratto, cambia la
    soglia del watchdog e il modello di simulazione)*
-3. Le quattro caselle del §3 sul formato numerico.
-4. `n_x` e `n_u` reali. *(oggi assumiamo 3 e 1)*
-5. Il blocco ha stato interno fra un solve e il successivo, o è puro?
+3. Il blocco ha stato interno fra un solve e il successivo, o è puro?
    *(se ha stato, `SOFT_RESET` deve raggiungerlo)*
+
+### Sul formato numerico
+4. Le quattro caselle del §3. Finché non sono spuntate, ogni confronto numerico
+   fra i due lati misura la cosa sbagliata.
+
+### Sul payload — le più urgenti
+5. **Cosa sono i due vettori 3×1** che già attraversano il confine? *(stato e
+   riferimento? stato e disturbo? due colonne della 3×3?)*
+6. **La 3×3 da invertire è assemblata da quei vettori?** Se sì è **tempo-variante**
+   e l'inversa non è precalcolabile offline. E allora: dove viene la **terza**
+   colonna — un terzo vettore che non abbiamo ancora visto, una costante, o il
+   campione precedente?
+7. **Tutti i vettori devono essere presenti prima che il calcolo parta?**
+   *(quasi certamente sì: determina quando il wrapper emette `start`)*
+8. **Oltre allo stato, cos'altro attraversa il confine ARM↔FPGA, adesso o in
+   prospettiva?** In particolare: i dati grezzi di radar/lidar restano sull'ARM o
+   prima o poi passano alla PL? *(cambia la taglia del progetto, vedi §9)*
+
+---
+
+## 9. Perché la taglia del payload decide l'architettura
+
+`scripts/budget_report.m` calcola la curva. Con budget 33 µs a 100 MHz
+(3300 cicli), cicli che restano al calcolo:
+
+| elementi che attraversano | AXI4-Lite bare-metal | AXI4-Stream bare-metal | AXI4-Lite Linux mmap | AXI4-Stream Linux |
+|---:|---:|---:|---:|---:|
+| 3 (una 3×1) | **3195** | 3100 | 2600 | 100 |
+| **6 (due 3×1 — caso attuale)** | **3150** | 3100 | 2300 | 100 |
+| 9 (tre 3×1) | 3105 | 3100 | 2000 | 100 |
+| 12 | 3060 | 3100 | 1700 | 100 |
+| 30 | 2790 | 3100 | esaurito | 100 |
+| 60 | 2340 | 3100 | esaurito | 100 |
+
+Tre letture, in ordine di importanza:
+
+1. **Il vero discrimine è lo stack software del PS, non il bus.** Con 33 µs di
+   budget, qualunque percorso che passi per un driver kernel con interrupt è fuori.
+   Su Linux+mmap i registri reggono fino a ~25–30 elementi. **Bare-metal regge
+   tutto.** Questo va deciso presto: condiziona se PYNQ/Python può essere usato per
+   l'anello a regime (per il bring-up va benissimo).
+2. **La soglia registri↔stream sta intorno a 10–12 elementi** (~50 byte) su
+   bare-metal. Sotto, i registri vincono; sopra, lo stream. Con due 3×1 siamo
+   **sotto**, ma non di molto: se i vettori diventano quattro, si riapre.
+3. **Il costo dello stream non dipende dalla taglia** — è dominato dal costo fisso
+   di setup. Per questo la sua riga è piatta: è il motivo per cui vince sui payload
+   grandi e perde su quelli piccoli.
+
+### Un argomento a favore dei registri che non è la latenza
+
+Con più vettori d'ingresso, la PL deve avere **l'insieme completo** prima di
+partire. Con i registri questo è esplicito e gratuito: si scrivono tutti i
+registri, poi si alza `START`. Con uno stream bisogna dedurre la completezza da
+`TLAST` o da un contatore — logica in più, e un modo di fallire in più (insieme
+parziale → risultato plausibile e sbagliato, senza che nessuno se ne accorga).
 
 Finché mancano, il wrapper resta parametrico e il blocco di calcolo è simulato da
 un segnaposto a latenza configurabile — il che permette comunque di rispondere a
