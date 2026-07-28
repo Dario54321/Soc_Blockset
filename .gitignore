@@ -1,0 +1,26 @@
+# MATLAB/Simulink cache and generated code
+*.slxc
+slprj/
+Prova_1_profiling/
+
+# Vivado generated project artifacts (rigenerabili dagli .slx + .tcl)
+vivado_proj/
+.Xil/
+*.jou
+*.log
+*.wdb
+webtalk*.log
+
+# HDL Coder intermediate build output (rigenerabile da makehdl/HDL Workflow Advisor)
+hdl_prj/
+gm_*.slx
+hdlsrc/
+hdlsrc_generated*/
+hdlsrc_fixedpoint_gen*/
+*_report.html
+*_compile.do
+*_map.txt
+hcv
+hdlcodegenstatus.mat
+clearHighlightingRemovedDeadBlocks.m
+highlightRemovedDeadBlocks.m

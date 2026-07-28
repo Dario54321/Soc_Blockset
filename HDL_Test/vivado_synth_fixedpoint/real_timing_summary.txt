@@ -1,0 +1,656 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.1 (win64) Build 3526262 Mon Apr 18 15:48:16 MDT 2022
+| Date         : Mon Jul 27 21:58:19 2026
+| Host         : LAPTOP-RTJL1V6U running 64-bit major release  (build 9200)
+| Command      : report_timing_summary -file real_timing_summary.txt -max_paths 5
+| Design       : FPGA_Prova1_fixedpoint
+| Device       : 7z020-clg484
+| Speed File   : -1  PRODUCTION 1.12 2019-11-22
+------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (0)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (0)
+5. checking no_input_delay (0)
+6. checking no_output_delay (0)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (0)
+------------------------
+ There are 0 register/latch pins with no clock.
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (0)
+------------------------------------------------
+ There are 0 pins that are not constrained for maximum delay.
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (0)
+------------------------------
+ There are 0 input ports with no input delay specified.
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (0)
+-------------------------------
+ There are 0 ports with no output delay specified.
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      1.029        0.000                      0                  946        1.564        0.000                      0                  946           NA           NA                      NA                    NA  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock     Waveform(ns)       Period(ns)      Frequency(MHz)
+-----     ------------       ----------      --------------
+virt_clk  {0.000 5.000}      10.000          100.000         
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+virt_clk            1.029        0.000                      0                  946        1.564        0.000                      0                  946                                                                          
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    ----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  virt_clk
+  To Clock:  virt_clk
+
+Setup :            0  Failing Endpoints,  Worst Slack        1.029ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        1.564ns,  Total Violation        0.000ns
+PW    :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.029ns  (required time - arrival time)
+  Source:                 tdata_0[21]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_fixed_out_0[0]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (virt_clk rise@10.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        8.946ns  (logic 7.347ns (82.121%)  route 1.599ns (17.879%))
+  Logic Levels:           3  (DSP48E1=1 IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[21] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[21]
+                         IBUF (Prop_ibuf_I_O)         0.921     0.921 r  tdata_0_IBUF[21]_inst/O
+                         net (fo=17, unplaced)        0.800     1.721    matB_out_0_OBUF[21]
+                         DSP48E1 (Prop_dsp48e1_A[29]_P[13])
+                                                      3.841     5.562 r  Gain_matA_mul_temp/P[13]
+                         net (fo=1, unplaced)         0.800     6.362    matA_fixed_out_0_OBUF[0]
+                         OBUF (Prop_obuf_I_O)         2.584     8.946 r  matA_fixed_out_0_OBUF[0]_inst/O
+                         net (fo=0)                   0.000     8.946    matA_fixed_out_0[0]
+                                                                      r  matA_fixed_out_0[0] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                     10.000    10.000 r  
+                         ideal clock network latency
+                                                      0.000    10.000    
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.025     9.975    
+                         output delay                -0.000     9.975    
+  -------------------------------------------------------------------
+                         required time                          9.975    
+                         arrival time                          -8.946    
+  -------------------------------------------------------------------
+                         slack                                  1.029    
+
+Slack (MET) :             1.029ns  (required time - arrival time)
+  Source:                 tdata_0[21]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_fixed_out_0[10]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (virt_clk rise@10.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        8.946ns  (logic 7.347ns (82.121%)  route 1.599ns (17.879%))
+  Logic Levels:           3  (DSP48E1=1 IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[21] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[21]
+                         IBUF (Prop_ibuf_I_O)         0.921     0.921 r  tdata_0_IBUF[21]_inst/O
+                         net (fo=17, unplaced)        0.800     1.721    matB_out_0_OBUF[21]
+                         DSP48E1 (Prop_dsp48e1_A[29]_P[23])
+                                                      3.841     5.562 r  Gain_matA_mul_temp/P[23]
+                         net (fo=1, unplaced)         0.800     6.362    matA_fixed_out_0_OBUF[10]
+                         OBUF (Prop_obuf_I_O)         2.584     8.946 r  matA_fixed_out_0_OBUF[10]_inst/O
+                         net (fo=0)                   0.000     8.946    matA_fixed_out_0[10]
+                                                                      r  matA_fixed_out_0[10] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                     10.000    10.000 r  
+                         ideal clock network latency
+                                                      0.000    10.000    
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.025     9.975    
+                         output delay                -0.000     9.975    
+  -------------------------------------------------------------------
+                         required time                          9.975    
+                         arrival time                          -8.946    
+  -------------------------------------------------------------------
+                         slack                                  1.029    
+
+Slack (MET) :             1.029ns  (required time - arrival time)
+  Source:                 tdata_0[21]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_fixed_out_0[11]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (virt_clk rise@10.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        8.946ns  (logic 7.347ns (82.121%)  route 1.599ns (17.879%))
+  Logic Levels:           3  (DSP48E1=1 IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[21] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[21]
+                         IBUF (Prop_ibuf_I_O)         0.921     0.921 r  tdata_0_IBUF[21]_inst/O
+                         net (fo=17, unplaced)        0.800     1.721    matB_out_0_OBUF[21]
+                         DSP48E1 (Prop_dsp48e1_A[29]_P[24])
+                                                      3.841     5.562 r  Gain_matA_mul_temp/P[24]
+                         net (fo=1, unplaced)         0.800     6.362    matA_fixed_out_0_OBUF[11]
+                         OBUF (Prop_obuf_I_O)         2.584     8.946 r  matA_fixed_out_0_OBUF[11]_inst/O
+                         net (fo=0)                   0.000     8.946    matA_fixed_out_0[11]
+                                                                      r  matA_fixed_out_0[11] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                     10.000    10.000 r  
+                         ideal clock network latency
+                                                      0.000    10.000    
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.025     9.975    
+                         output delay                -0.000     9.975    
+  -------------------------------------------------------------------
+                         required time                          9.975    
+                         arrival time                          -8.946    
+  -------------------------------------------------------------------
+                         slack                                  1.029    
+
+Slack (MET) :             1.029ns  (required time - arrival time)
+  Source:                 tdata_0[21]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_fixed_out_0[12]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (virt_clk rise@10.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        8.946ns  (logic 7.347ns (82.121%)  route 1.599ns (17.879%))
+  Logic Levels:           3  (DSP48E1=1 IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[21] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[21]
+                         IBUF (Prop_ibuf_I_O)         0.921     0.921 r  tdata_0_IBUF[21]_inst/O
+                         net (fo=17, unplaced)        0.800     1.721    matB_out_0_OBUF[21]
+                         DSP48E1 (Prop_dsp48e1_A[29]_P[25])
+                                                      3.841     5.562 r  Gain_matA_mul_temp/P[25]
+                         net (fo=1, unplaced)         0.800     6.362    matA_fixed_out_0_OBUF[12]
+                         OBUF (Prop_obuf_I_O)         2.584     8.946 r  matA_fixed_out_0_OBUF[12]_inst/O
+                         net (fo=0)                   0.000     8.946    matA_fixed_out_0[12]
+                                                                      r  matA_fixed_out_0[12] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                     10.000    10.000 r  
+                         ideal clock network latency
+                                                      0.000    10.000    
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.025     9.975    
+                         output delay                -0.000     9.975    
+  -------------------------------------------------------------------
+                         required time                          9.975    
+                         arrival time                          -8.946    
+  -------------------------------------------------------------------
+                         slack                                  1.029    
+
+Slack (MET) :             1.029ns  (required time - arrival time)
+  Source:                 tdata_0[21]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_fixed_out_0[13]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (virt_clk rise@10.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        8.946ns  (logic 7.347ns (82.121%)  route 1.599ns (17.879%))
+  Logic Levels:           3  (DSP48E1=1 IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[21] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[21]
+                         IBUF (Prop_ibuf_I_O)         0.921     0.921 r  tdata_0_IBUF[21]_inst/O
+                         net (fo=17, unplaced)        0.800     1.721    matB_out_0_OBUF[21]
+                         DSP48E1 (Prop_dsp48e1_A[29]_P[26])
+                                                      3.841     5.562 r  Gain_matA_mul_temp/P[26]
+                         net (fo=1, unplaced)         0.800     6.362    matA_fixed_out_0_OBUF[13]
+                         OBUF (Prop_obuf_I_O)         2.584     8.946 r  matA_fixed_out_0_OBUF[13]_inst/O
+                         net (fo=0)                   0.000     8.946    matA_fixed_out_0[13]
+                                                                      r  matA_fixed_out_0[13] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                     10.000    10.000 r  
+                         ideal clock network latency
+                                                      0.000    10.000    
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.025     9.975    
+                         output delay                -0.000     9.975    
+  -------------------------------------------------------------------
+                         required time                          9.975    
+                         arrival time                          -8.946    
+  -------------------------------------------------------------------
+                         slack                                  1.029    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.564ns  (arrival time - required time)
+  Source:                 StreamEnable
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            computeDone
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (virt_clk rise@0.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        1.589ns  (logic 1.252ns (78.789%)  route 0.337ns (21.211%))
+  Logic Levels:           2  (IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  StreamEnable (IN)
+                         net (fo=0)                   0.000     0.000    StreamEnable
+                         IBUF (Prop_ibuf_I_O)         0.151     0.151 r  StreamEnable_IBUF_inst/O
+                         net (fo=2, unplaced)         0.337     0.488    computeDone_OBUF
+                         OBUF (Prop_obuf_I_O)         1.101     1.589 r  computeDone_OBUF_inst/O
+                         net (fo=0)                   0.000     1.589    computeDone
+                                                                      r  computeDone (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         clock pessimism              0.000     0.000    
+                         clock uncertainty            0.025     0.025    
+                         output delay                -0.000     0.025    
+  -------------------------------------------------------------------
+                         required time                         -0.025    
+                         arrival time                           1.589    
+  -------------------------------------------------------------------
+                         slack                                  1.564    
+
+Slack (MET) :             1.564ns  (arrival time - required time)
+  Source:                 tdata_0[0]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_out_0[0]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (virt_clk rise@0.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        1.589ns  (logic 1.252ns (78.789%)  route 0.337ns (21.211%))
+  Logic Levels:           2  (IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[0] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[0]
+                         IBUF (Prop_ibuf_I_O)         0.151     0.151 r  tdata_0_IBUF[0]_inst/O
+                         net (fo=2, unplaced)         0.337     0.488    matB_out_0_OBUF[0]
+                         OBUF (Prop_obuf_I_O)         1.101     1.589 r  matA_out_0_OBUF[0]_inst/O
+                         net (fo=0)                   0.000     1.589    matA_out_0[0]
+                                                                      r  matA_out_0[0] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         clock pessimism              0.000     0.000    
+                         clock uncertainty            0.025     0.025    
+                         output delay                -0.000     0.025    
+  -------------------------------------------------------------------
+                         required time                         -0.025    
+                         arrival time                           1.589    
+  -------------------------------------------------------------------
+                         slack                                  1.564    
+
+Slack (MET) :             1.564ns  (arrival time - required time)
+  Source:                 tdata_0[10]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_out_0[10]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (virt_clk rise@0.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        1.589ns  (logic 1.252ns (78.789%)  route 0.337ns (21.211%))
+  Logic Levels:           2  (IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[10] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[10]
+                         IBUF (Prop_ibuf_I_O)         0.151     0.151 r  tdata_0_IBUF[10]_inst/O
+                         net (fo=3, unplaced)         0.337     0.488    matB_out_0_OBUF[10]
+                         OBUF (Prop_obuf_I_O)         1.101     1.589 r  matA_out_0_OBUF[10]_inst/O
+                         net (fo=0)                   0.000     1.589    matA_out_0[10]
+                                                                      r  matA_out_0[10] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         clock pessimism              0.000     0.000    
+                         clock uncertainty            0.025     0.025    
+                         output delay                -0.000     0.025    
+  -------------------------------------------------------------------
+                         required time                         -0.025    
+                         arrival time                           1.589    
+  -------------------------------------------------------------------
+                         slack                                  1.564    
+
+Slack (MET) :             1.564ns  (arrival time - required time)
+  Source:                 tdata_0[11]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_out_0[11]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (virt_clk rise@0.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        1.589ns  (logic 1.252ns (78.789%)  route 0.337ns (21.211%))
+  Logic Levels:           2  (IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[11] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[11]
+                         IBUF (Prop_ibuf_I_O)         0.151     0.151 r  tdata_0_IBUF[11]_inst/O
+                         net (fo=3, unplaced)         0.337     0.488    matB_out_0_OBUF[11]
+                         OBUF (Prop_obuf_I_O)         1.101     1.589 r  matA_out_0_OBUF[11]_inst/O
+                         net (fo=0)                   0.000     1.589    matA_out_0[11]
+                                                                      r  matA_out_0[11] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         clock pessimism              0.000     0.000    
+                         clock uncertainty            0.025     0.025    
+                         output delay                -0.000     0.025    
+  -------------------------------------------------------------------
+                         required time                         -0.025    
+                         arrival time                           1.589    
+  -------------------------------------------------------------------
+                         slack                                  1.564    
+
+Slack (MET) :             1.564ns  (arrival time - required time)
+  Source:                 tdata_0[12]
+                            (input port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            matA_out_0[12]
+                            (output port clocked by virt_clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             virt_clk
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (virt_clk rise@0.000ns - virt_clk rise@0.000ns)
+  Data Path Delay:        1.589ns  (logic 1.252ns (78.789%)  route 0.337ns (21.211%))
+  Logic Levels:           2  (IBUF=1 OBUF=1)
+  Input Delay:            0.000ns
+  Output Delay:           0.000ns
+  Clock Uncertainty:      0.025ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         input delay                  0.000     0.000    
+                                                      0.000     0.000 r  tdata_0[12] (IN)
+                         net (fo=0)                   0.000     0.000    tdata_0[12]
+                         IBUF (Prop_ibuf_I_O)         0.151     0.151 r  tdata_0_IBUF[12]_inst/O
+                         net (fo=3, unplaced)         0.337     0.488    matB_out_0_OBUF[12]
+                         OBUF (Prop_obuf_I_O)         1.101     1.589 r  matA_out_0_OBUF[12]_inst/O
+                         net (fo=0)                   0.000     1.589    matA_out_0[12]
+                                                                      r  matA_out_0[12] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock virt_clk rise edge)
+                                                      0.000     0.000 r  
+                         ideal clock network latency
+                                                      0.000     0.000    
+                         clock pessimism              0.000     0.000    
+                         clock uncertainty            0.025     0.025    
+                         output delay                -0.000     0.025    
+  -------------------------------------------------------------------
+                         required time                         -0.025    
+                         arrival time                           1.589    
+  -------------------------------------------------------------------
+                         slack                                  1.564    
+
+
+
+
+
+
