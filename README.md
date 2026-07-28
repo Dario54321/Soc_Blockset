@@ -51,8 +51,10 @@ Inoltre — scoperta confrontando un esempio ufficiale MathWorks funzionante —
 ## Prossimi passi
 
 - **Installare il toolchain di cross-compilazione ARM** (via MATLAB Add-Ons Manager → Hardware Setup) — è l'unico pezzo mancante per completare davvero la generazione software: il pipeline (`socModelBuilder`/`buildModel`) genera correttamente il sistema software e il codice C reale dell'algoritmo, fermandosi solo alla compilazione finale per mancanza del compilatore ARM installato.
-- Una volta installato il toolchain, ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream.
-- Applicare gli stessi principi (canale dati, fixed-point, task/eventi) all'algoritmo MPC vero, non solo alla demo con due matrici.
+  - **Verificato**: questo blocco vale sia per `BuildType='Processor only'` sia per `BuildType='FPGA only'` — anche scegliendo "solo FPGA" il pipeline genera comunque il lato software e tenta comunque la compilazione ARM di `ComputeAlgorithm`, fallendo con lo stesso errore. Non esiste una build parziale che aggiri il toolchain mancante. Dettagli in [`docs/socbuilder_notes.md`](docs/socbuilder_notes.md).
+  - Il wizard di Hardware Setup richiede una vera SD card/chiavetta USB rimovibile nello step "Select a Drive"; un disco virtuale (VHD) creato con `diskpart` non basta, perché Windows lo classifica sempre come `Fixed`/`File Backed Virtual`, mai come `Removable` — approfondito anch'esso in `docs/socbuilder_notes.md`.
+- Una volta installato il toolchain (con media rimovibile reale), ripetere il build con `BuildType='Processor and FPGA'` per ottenere anche il bitstream.
+- Applicare gli stessi principi (canale dati, fixed-point, task/eventi) all'algoritmo MPC vero, non solo alla demo con due matrici — nel frattempo si può procedere in parallelo con sintesi Vivado diretta (via Tcl) su blocchi dell'algoritmo MPC, senza dipendere dal toolchain ARM.
 - Valutare se e come usare la Pynq-Z1 come scheda reale (la sua registrazione come "board" in MATLAB risulta al momento incompleta/da sistemare — nel frattempo si usa `ZedBoard`, stesso chip Zynq-7020, come riferimento per i test).
 
 ## Note per chi riprende questo lavoro 

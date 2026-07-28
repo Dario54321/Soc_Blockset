@@ -70,7 +70,9 @@ obj = socModelBuilder(nomemodello, 'ProjectFolder', percorso, 'BuildType', 'Proc
 buildModel(obj);
 ```
 
-`BuildType` può essere `'Processor only'` (solo software ARM, il più veloce da testare), `'FPGA only'`, o `'Processor and FPGA'` (build completa).
+`BuildType` può essere `'Processor only'` (solo software ARM), `'FPGA only'`, o `'Processor and FPGA'` (build completa).
+
+⚠️ **Scoperta importante**: anche se si sceglie `'FPGA only'`, il pipeline genera comunque il sistema software ed esegue comunque la compilazione del lato processore (`ComputeAlgorithm`) — perché il modello ha i due lati co-progettati insieme (Task Manager/canale streaming), quindi anche una build "solo FPGA" richiede che il toolchain ARM sia a posto. Non è un modo per aggirare il requisito del toolchain di cross-compilazione.
 
 **Attenzione al percorso**: `ProjectFolder` **non accetta percorsi con spazi** — se il proprio nome utente Windows contiene uno spazio (es. `C:\Users\Nome Cognome\...`), va usata una cartella su un percorso pulito (es. `D:\NomeCartella\`, senza spazi) sia per il modello sia per `ProjectFolder`.
 
@@ -132,12 +134,12 @@ Provato a creare un file VHD (disco virtuale) via `diskpart`, montarlo come unit
 
 *Nota per chi prova a fare lo stesso*: l'icona "Espelli" che Esplora Risorse mostra per i dischi VHD montati non è un indizio affidabile — è solo una comodità dell'interfaccia per i VHD, non riflette la vera classificazione di sistema (verificabile con `Get-Volume`/`Get-PhysicalDisk` in PowerShell).
 
+## Ricerca del punto di controllo interno — vicolo cieco (per ora)
+
+Cercato nel codice del toolbox (`grep` mirato su `toolbox/shared/soc`, `toolbox/hdlcoder`, `toolbox/shared/hwconnectinstaller`, e una ricerca più ampia su tutto `toolbox/`) il testo esatto dell'errore, per capire se esiste un modo per registrare manualmente un toolchain scaricato altrove (bypassando il wizard). **Nessun risultato in nessuna delle due ricerche** — il controllo è quasi certamente dentro codice compilato/protetto (p-code) di MathWorks, non ispezionabile in questo modo. Non proseguire su questa via se non emergono nuovi indizi.
+
 ## Le opzioni rimaste per completare il compilatore ARM
 
-1. **Procurarsi una vera chiavetta USB o SD card** e ripetere il wizard per intero — la strada più semplice.
-2. **Scaricare il toolchain manualmente** (es. da Linaro) e provare a registrarlo senza passare dal wizard — non ancora verificato se `buildModel` lo accetterebbe.
-3. Mettere in pausa questo aspetto specifico e lavorare nel frattempo su altre parti del progetto (es. il lato FPGA della build, indipendente da questo).
-
-## Prossimo passo
-
-Indagare se esiste un modo per registrare un toolchain manualmente, cercando nel codice sorgente del toolbox cosa verifica esattamente `buildModel` per decidere se il compilatore è installato.
+1. **Procurarsi una vera chiavetta USB o SD card** e ripetere il wizard per intero (compresa la schermata di scrittura SD) — l'unica strada verificata come potenzialmente risolutiva, dato che `'FPGA only'` non la aggira.
+2. **Scaricare il toolchain manualmente** (es. da Linaro) e provare a registrarlo senza passare dal wizard — non ancora tentato, esito incerto.
+3. Mettere in pausa questo aspetto specifico e lavorare nel frattempo su altre parti del progetto che non richiedono il toolchain ARM — es. sintesi Vivado diretta (via TCL, bypassando `socModelBuilder` interamente) sull'algoritmo MPC vero quando sarà pronto, o affinamento della demo di simulazione.
