@@ -8,6 +8,19 @@ Propedeutico all'obiettivo finale del progetto: accelerare un MPC sulla PYNQ-Z1.
 
 ---
 
+> ### ⚠ Riorientamento in corso
+>
+> Il bersaglio del progetto è stato precisato dopo la costruzione di questi modelli:
+> il payload reale è una **3×1** (12–16 byte, non 25 elementi), il calcolo è dentro
+> un **blocco di terzi** che non controlliamo, e il budget d'anello è **33 µs**.
+>
+> Conseguenza: il trasporto passa da **AXI4-Stream a AXI4-Lite** — con i numeri, non
+> per preferenza. Vedi [`docs/13_APERTI.md` §A0](docs/13_APERTI.md) e il nuovo
+> [contratto d'interfaccia](docs/20_CONTRATTO_INTERFACCIA.md).
+>
+> I modelli qui descritti implementano ancora lo stream: restano validi come
+> infrastruttura verificata e come seconda implementazione della stessa interfaccia.
+
 ## Stato
 
 **Simulazione di sistema completa e verificata.** La catena
@@ -58,6 +71,7 @@ build_soc_top();       % ricostruisce models/soc_top.slx da zero
 
 run_regression;        % PASS/FAIL dell'intera suite (~4 minuti)
 run_system_sim;        % solo la simulazione di sistema (~2 minuti)
+budget_report;         % quanti cicli restano al blocco di calcolo, per stack PS
 
 export_r2023b();       % REGOLA R1 — prima di ogni commit che tocca .slx
 ```
@@ -110,6 +124,7 @@ docs/
   11_NOTE_API.md           ⚠️ diario delle scoperte: errori esatti, cause, soluzioni
   12_RICERCA_TOOLCHAIN.md  ricerca sistematica su doc MathWorks e artefatti installati
   13_APERTI.md             ⚠️ punti aperti e prossimi passi — DA LEGGERE PER PRIMI
+  20_CONTRATTO_INTERFACCIA.md  ⚠️ confine con il blocco di calcolo di terzi
 models/
   soc_top.slx              Variable-step · contenitore · Task Manager · canali
   soc_fpga.slx             Fixed-step    · ProdHWDeviceType = ASIC/FPGA · logica PL
@@ -121,6 +136,7 @@ scripts/
   gen_vectors.m            510 vettori, seed 20260728
   build_soc_{fpga,proc,top}.m
   run_system_sim.m         simulazione di sistema + confronto numerico
+  budget_report.m          equazione di progetto: cicli disponibili per il calcolo
   run_regression.m         un comando → PASS/FAIL
   export_r2023b.m          REGOLA R1
 test/                      vectors.mat (rigenerabile, non versionato)

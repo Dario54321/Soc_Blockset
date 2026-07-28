@@ -43,6 +43,64 @@ p.env.fpgaSpeed            = '-1';
 % feature SoC Blockset e allontana la simulazione dal bersaglio reale.
 p.env.simBoard             = 'ZedBoard';
 
+%% ==================================================================
+%  PROBLEMA DI CONTROLLO — ipotesi dichiarate, non confermate
+%  ==================================================================
+%  Il file dell'MPC non e' ancora disponibile. Questi valori sono IPOTESI
+%  e il progetto e' parametrico su di essi proprio per questo.
+%  Quando l'MPC arriva, si cambiano qui e basta (regola R2).
+p.mpc.nx       = 3;        % dimensione dello stato trasferito ARM -> PL
+p.mpc.nu       = 1;        % dimensione del risultato PL -> ARM
+p.mpc.confirmed = false;   % <- diventa true quando l'MPC e' stato letto
+
+%% ==================================================================
+%  BUDGET D'ANELLO
+%  ==================================================================
+%  33 us viene da un paper, NON e' stato misurato da noi. Target di
+%  riferimento dichiarato, da sostituire con il numero vero al bring-up.
+p.budget.TsLoop   = 33e-6;      % [s]
+p.budget.source   = 'paper, non misurato';
+p.budget.clockMHz = 100;        % clock della PL
+p.budget.cyclesTotal = round(p.budget.TsLoop * p.budget.clockMHz * 1e6);
+
+%% ==================================================================
+%  STACK SOFTWARE DEL PS
+%  ==================================================================
+%  Le costanti sono ORDINI DI GRANDEZZA da letteratura (soc-expert ch06),
+%  NON misure sulla nostra board. Vanno rimisurate al bring-up: e' la
+%  prima cosa che il driver deve produrre.
+%    tAccessLite = costo di un accesso a registro a 32 bit
+%    tFixedDMA   = costo fisso per trasferimento DMA (setup + notifica)
+p.psStack.kind = 'baremetal_poll';
+p.psStack.catalog = struct( ...
+    'name',        {'baremetal_poll','baremetal_irq','linux_mmap','linux_driver'}, ...
+    'tAccessLite', {         0.15e-6,        0.15e-6,       1e-6,        5e-6}, ...
+    'tFixedDMA',   {            2e-6,           4e-6,      32e-6,       32e-6}, ...
+    'note',        {'polling, nessun SO','interrupt','mmap user-space, polling','driver kernel + interrupt'});
+p.psStack.nPollAvg = 2;   % letture di STATUS attese prima di vedere DONE
+
+%% ==================================================================
+%  BLOCCO DI CALCOLO DI TERZI — segnaposto a latenza configurabile
+%  ==================================================================
+%  Vedi docs/20_CONTRATTO_INTERFACCIA.md. Il blocco e' una scatola nera:
+%  qui se ne modella solo la LATENZA, per rispondere alla domanda
+%  "quanta ne possiamo tollerare restando nei 33 us?".
+p.compute.latencyCycles = 500;    % IPOTESI: da sostituire con la lettura di CYCLES
+p.compute.latencyKnown  = false;
+p.compute.timeoutCycles = 3000;   % soglia del watchdog, programmabile a runtime
+
+%% ==================================================================
+%  TRASPORTO — sostituibile per costruzione
+%  ==================================================================
+%  'axi4lite'   : registri. Corretto per payload piccoli (< ~130 B).
+%  'axi4stream' : DMA. Corretto oltre i ~4 kB. E' quello implementato dai
+%                 modelli attuali, costruiti quando il payload ipotizzato
+%                 era di 25 elementi.
+%  La scelta e' una DECISIONE ARCHITETTURALE, motivata in
+%  docs/01_PIANO.md e ricalcolata da transport_budget() qui sotto.
+p.transport.kind = 'axi4stream';   % <- diventa 'axi4lite' quando i modelli
+                                   %    saranno ricostruiti (passo 2)
+
 %% ------------------------------------------------------------------
 %  Payload dello stream
 %  Vincolo C1: il reference design AXI4-Stream shipped e' a 32 bit.
@@ -154,6 +212,10 @@ p.regmap.idVerMagic  = uint32(hex2dec('50325A31'));   % "P2Z1"
 % Il lato software NON collega un segnale grezzo al Register Channel: ci
 % scrive attraverso un blocco prociolib/Register Write, che e' cio' che
 % emette il messaggio atteso dal canale (vedi docs/11_NOTE_API).
+% --- mappa AXI4-Lite del wrapper (docs/20_CONTRATTO_INTERFACCIA.md §6) ---
+% DERIVATA da nx/nu: nessun offset si trascrive a mano, ne' in HDL ne' in C.
+p.regmap.wrapper = build_wrapper_regmap(p.mpc.nx, p.mpc.nu, p.payload.dtStr);
+
 p.regchan.name       = 'streamEnable';
 p.regchan.rw         = 'Write';
 p.regchan.dataType   = 'boolean';
@@ -178,7 +240,93 @@ p.vectors.nRandom   = 500;
 p.vectors.file      = 'vectors.mat';
 
 %% ------------------------------------------------------------------
+%  Analisi di budget: quanto resta al calcolo dopo il trasporto
+%  ------------------------------------------------------------------
+p.budget.analysis = transport_budget(p);
+
 soc_params_check(p);
+end
+
+
+% =====================================================================
+function B = transport_budget(p)
+%TRANSPORT_BUDGET  Quanto costa il trasporto e quanto resta al calcolo.
+%
+%   E' l'equazione di progetto del sistema. Restituisce una riga per ogni
+%   stack software del PS, cosi' la scelta si fa su una curva e non su
+%   un'impressione.
+%
+%   Attenzione: le costanti di p.psStack.catalog sono ordini di grandezza
+%   da letteratura, NON misure. Il numero definitivo arriva dal bring-up.
+
+    nAcc = p.mpc.nx ...            % scritture dello stato
+         + 1 ...                   % scrittura di CTRL (START)
+         + p.psStack.nPollAvg ...  % letture di STATUS
+         + p.mpc.nu;               % letture del risultato
+    nBytes = (p.mpc.nx + p.mpc.nu) * p.payload.wordLength / 8;
+
+    cat = p.psStack.catalog;
+    B.rows = struct('stack',{},'transportSec',{},'transportCycles',{}, ...
+                    'computeCyclesMax',{},'fits',{});
+    for k = 1:numel(cat)
+        switch p.transport.kind
+            case 'axi4lite'
+                tT = nAcc * cat(k).tAccessLite;
+            case 'axi4stream'
+                % costo fisso dominante a questa taglia: il termine per byte
+                % e' trascurabile (nBytes molto sotto il break-even)
+                tT = cat(k).tFixedDMA;
+            otherwise
+                error('socParams:transportKind', ...
+                    'Trasporto sconosciuto: ''%s''', p.transport.kind);
+        end
+        cT   = ceil(tT * p.budget.clockMHz * 1e6);
+        cMax = p.budget.cyclesTotal - cT;
+        B.rows(end+1) = struct( ...
+            'stack',            cat(k).name, ...
+            'transportSec',     tT, ...
+            'transportCycles',  cT, ...
+            'computeCyclesMax', cMax, ...
+            'fits',             cMax > 0); %#ok<AGROW>
+    end
+
+    B.nAccesses = nAcc;
+    B.nBytes    = nBytes;
+
+    % riga corrispondente allo stack attualmente scelto
+    idx = find(strcmp({B.rows.stack}, p.psStack.kind), 1);
+    assert(~isempty(idx), 'socParams:psStack', ...
+        'Stack ''%s'' non presente nel catalogo.', p.psStack.kind);
+    B.active = B.rows(idx);
+end
+
+
+% =====================================================================
+function R = build_wrapper_regmap(nx, nu, dtStr)
+%BUILD_WRAPPER_REGMAP  Mappa AXI4-Lite derivata da nx/nu.
+%   Nessun offset scritto a mano: cambiando nx/nu la mappa segue, e con
+%   essa l'header C e la decodifica HDL che si generano da qui.
+
+    R = struct('name',{},'offset',{},'access',{},'type',{},'descr',{});
+    add = @(n,o,a,t,d) struct('name',n,'offset',o,'access',a,'type',t,'descr',d);
+
+    R(end+1) = add('CTRL',  '0x00','RW','uint32', ...
+        'bit0 START(autoazzerante) bit1 SOFT_RESET bit2 IRQ_EN');
+    R(end+1) = add('STATUS','0x04','R', 'uint32', ...
+        'bit0 DONE bit1 BUSY bit2 ERROR bit3 TIMEOUT');
+
+    for i = 0:nx-1
+        R(end+1) = add(sprintf('X%d',i), sprintf('0x%02X', 8 + 4*i), ...
+            'W', dtStr, sprintf('stato[%d]', i)); %#ok<AGROW>
+    end
+    for j = 0:nu-1
+        R(end+1) = add(sprintf('U%d',j), sprintf('0x%02X', 64 + 4*j), ...
+            'R', dtStr, sprintf('uscita[%d]', j)); %#ok<AGROW>
+    end
+
+    R(end+1) = add('CYCLES', '0x80','R', 'uint32','cicli dell''ultimo solve');
+    R(end+1) = add('TIMEOUT','0x84','RW','uint32','soglia del watchdog, in cicli');
+    R(end+1) = add('ID_VER', '0x8C','R', 'uint32','costante magica + versione');
 end
 
 
@@ -247,6 +395,52 @@ assert(abs(p.stream.frameSampleTime - p.timing.taskPeriod) < eps(p.timing.taskPe
 offs = {p.regmap.reg.offset};
 assert(numel(unique(offs)) == numel(offs), 'socParams:regmapDup', ...
     'Offset duplicati nel register map: %s', strjoin(offs, ' '));
+
+% --- Register map del wrapper: offset unici e allineati a 4 byte ---
+w = p.regmap.wrapper;
+woffs = {w.offset};
+assert(numel(unique(woffs)) == numel(woffs), 'socParams:wrapperRegmapDup', ...
+    'Offset duplicati nella mappa del wrapper: %s', strjoin(woffs, ' '));
+for k = 1:numel(w)
+    v = sscanf(w(k).offset, '0x%x');
+    assert(mod(v,4) == 0, 'socParams:wrapperAlign', ...
+        'Offset %s (%s) non allineato a 4 byte.', w(k).offset, w(k).name);
+end
+
+% --- Watchdog: la soglia deve superare la latenza attesa ---
+assert(p.compute.timeoutCycles > p.compute.latencyCycles, 'socParams:watchdog', ...
+    ['Soglia di watchdog (%d cicli) non superiore alla latenza attesa del ' ...
+     'calcolo (%d cicli): scatterebbe su ogni solve valido.'], ...
+    p.compute.timeoutCycles, p.compute.latencyCycles);
+
+% --- IL vincolo di progetto: trasporto + calcolo devono stare nel budget ---
+B = p.budget.analysis;
+assert(B.active.fits, 'socParams:budgetTransport', ...
+    ['Con lo stack ''%s'' e il trasporto ''%s'' il solo TRASPORTO costa %.1f us ' ...
+     'su un budget di %.1f us: non resta nulla al calcolo.\n' ...
+     'Cambiare stack software o trasporto (vedi p.budget.analysis.rows).'], ...
+    p.psStack.kind, p.transport.kind, B.active.transportSec*1e6, p.budget.TsLoop*1e6);
+
+assert(p.compute.latencyCycles <= B.active.computeCyclesMax, 'socParams:budgetCompute', ...
+    ['La latenza ipotizzata del blocco di calcolo (%d cicli) supera il massimo ' ...
+     'compatibile con il budget (%d cicli) per lo stack ''%s'' con trasporto ''%s''.\n' ...
+     'Budget totale %d cicli, trasporto %d cicli.'], ...
+    p.compute.latencyCycles, B.active.computeCyclesMax, p.psStack.kind, ...
+    p.transport.kind, p.budget.cyclesTotal, B.active.transportCycles);
+
+% --- Avviso esplicito quando si progetta su ipotesi ---
+% Non e' un errore: e' lecito progettare l'infrastruttura contro un
+% contratto parametrico. Ma dev'essere VISIBILE, non implicito.
+persistent assumptionsAnnounced
+if isempty(assumptionsAnnounced); assumptionsAnnounced = false; end
+if (~p.mpc.confirmed || ~p.compute.latencyKnown) && ~assumptionsAnnounced
+    assumptionsAnnounced = true;   % una volta per sessione: visibile, non rumoroso
+    warning('socParams:assumptions', ...
+        ['Si sta progettando su IPOTESI: nx=%d nu=%d confermati=%d, ' ...
+         'latenza calcolo=%d cicli nota=%d. Vedi docs/20_CONTRATTO_INTERFACCIA.md §8.'], ...
+        p.mpc.nx, p.mpc.nu, p.mpc.confirmed, ...
+        p.compute.latencyCycles, p.compute.latencyKnown);
+end
 end
 
 

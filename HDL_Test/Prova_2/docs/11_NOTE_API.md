@@ -329,7 +329,21 @@ Con questa correzione l'errore va a **zero esatto** su tutte le uscite.
 
 ---
 
-## 10. Altre note minori
+## 10. `Stream Write` ha due uscite
+
+> *"'Output Port 2 (Left:2)' of block 'soc_proc/Writer/Stream Write' is not connected."*
+
+Il blocco `prociolib/Stream Write` espone **due** porte di uscita; l'esempio shipped
+collega la prima al dato e **termina esplicitamente la seconda**. Lasciarla
+penzolante non rompe niente, ma produce l'avviso a ogni simulazione — e un avviso
+che si impara a ignorare è un avviso che un giorno nasconderà qualcosa d'altro.
+
+Regola pratica: dopo il primo `Update Diagram` di un modello nuovo, leggere **tutti**
+gli avvisi e chiuderli, anche quelli innocui. Costa minuti una volta sola.
+
+---
+
+## 11. Altre note minori
 
 - `sfroot.find(...)` senza parentesi è errore di sintassi in R2026a: serve `sfroot()`.
 - Il Model block si aggiunge da `simulink/Ports & Subsystems/Model` e poi

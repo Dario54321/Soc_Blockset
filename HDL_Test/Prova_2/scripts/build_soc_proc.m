@@ -109,6 +109,13 @@
         'OffsetAddress', p.regchan.offset, ...
         'OutputSink',    'To output port');
 
+    % Stream Write ha DUE uscite: la seconda va terminata esplicitamente,
+    % come nell'esempio shipped. Lasciarla penzolante produce
+    % "'Output Port 2' of block '...' is not connected" a ogni simulazione,
+    % e un avviso che si impara a ignorare e' un avviso che un giorno
+    % nascondera' qualcosa.
+    add(wr,'simulink/Sinks/Terminator','Term_streamWrite2',[580 100 600 120]);
+
     add(wr,'simulink/Sinks/Out1','data',[560 68 590 82]);
     set_param([wr '/data'],'Port','1');
     add(wr,'simulink/Sinks/Out1','streamEnable',[560 138 590 152]);
@@ -119,6 +126,7 @@
     add_line(wr,'DTC_wire/1','Stream Write/1','autorouting','on');
     add_line(wr,'done/1','Stream Write/2','autorouting','on');
     add_line(wr,'Stream Write/1','data/1','autorouting','on');
+    add_line(wr,'Stream Write/2','Term_streamWrite2/1','autorouting','on');
     add_line(wr,'streamEnable_placeholder/1','Register Write/1','autorouting','on');
     add_line(wr,'Register Write/1','streamEnable/1','autorouting','on');
 

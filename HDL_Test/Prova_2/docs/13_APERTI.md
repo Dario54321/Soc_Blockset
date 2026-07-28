@@ -5,6 +5,64 @@
 
 ---
 
+## A0 — RIORIENTAMENTO: il bersaglio è cambiato
+
+Informazioni arrivate dopo la costruzione di `Prova_2`, che ne cambiano il target:
+
+1. **Il calcolo non è nel nostro perimetro.** L'inversione 3×3 è dentro un blocco
+   FPGA di un altro ingegnere, le cui scelte non sono negoziabili. Il nostro
+   perimetro è il **trasporto + il wrapper** in cui quel blocco si innesta.
+   → Contratto d'interfaccia in [`20_CONTRATTO_INTERFACCIA.md`](20_CONTRATTO_INTERFACCIA.md).
+2. **Il payload reale è una 3×1**, non 25 elementi: **12–16 byte**, contro un
+   break-even registri↔DMA di ~114 B bare-metal e ~900 B con driver Linux.
+3. **Budget d'anello dichiarato: 33 µs** (da un paper, *non misurato da noi*).
+
+### Conseguenza: il trasporto passa a AXI4-Lite
+
+`budget_report()` calcola l'equazione di progetto. Con `nx=3, nu=1` a 100 MHz
+(3300 cicli totali):
+
+| trasporto | stack PS | trasporto | cicli per il calcolo |
+|---|---|---:|---:|
+| **axi4lite** | **baremetal (polling)** | **1.05 µs** | **3195** |
+| axi4lite | linux mmap | 7.0 µs | 2600 |
+| axi4lite | linux, driver kernel | 35 µs | **budget esaurito** |
+| axi4stream | baremetal (polling) | 2.0 µs | 3100 |
+| axi4stream | linux mmap / driver | 32 µs | 100 |
+
+Due letture:
+
+- **Il DMA su Linux lascia 100 cicli al calcolo**: è squalificato dall'aritmetica,
+  non da una preferenza. Il costo fisso di setup+interrupt è ~32 µs
+  indipendentemente dal fatto che i byte siano 12 o 12000.
+- **Lo stack software pesa quanto il trasporto.** PYNQ/Python su Linux va benissimo
+  per bring-up e debug; per l'anello a regime serve bare-metal o Linux+mmap in
+  polling. Va misurato: le costanti in `soc_params` sono ordini di grandezza da
+  letteratura, non misure sulla nostra board.
+
+### Cosa si tiene e cosa cambia
+
+| Si tiene | Cambia |
+|---|---|
+| struttura a tre modelli, ricette di configurazione | payload: 25 elementi → `nx` parametrico |
+| suite di regressione e metodo dei gate | trasporto: AXI4-Stream → AXI4-Lite |
+| board plugin PYNQ-Z1, reference design, bring-up | contenuto del modello FPGA: reshape → CSR + FSM start/done |
+| regola R2023b, convenzioni, documentazione | reference design: `+vivado_stream_2022_1` → `+vivado_base_2022_1` (più piccolo) |
+
+Il tempismo è favorevole: eravamo fermi prima di P9, cioè prima di investire sulla
+parte specifica dello stream. E spariscono tre dei quattro segnaposto di
+[A2](#a2--segnaposto-ancora-presenti): priming dei buffer, back-pressure, nome del
+device DMA.
+
+> **Stato del codice.** `soc_params.m` contiene già il nuovo bersaglio (dimensioni,
+> budget, mappa registri del wrapper, modello di costo del trasporto) ma
+> `p.transport.kind` è ancora `'axi4stream'`, perché è ciò che i modelli
+> implementano oggi. Diventa `'axi4lite'` quando i modelli saranno ricostruiti.
+> Finché `p.mpc.confirmed` è `false`, ogni sessione emette un avviso: si sta
+> progettando su ipotesi, e dev'essere visibile.
+
+---
+
 ## A1 — BLOCCANTE per l'hardware: `tdata` vettoriale non è generabile
 
 **Stato attuale**: il modello FPGA riceve `tdata` come **vettore di 25 elementi
@@ -127,10 +185,29 @@ Non ancora iniziato. Materiale già individuato:
 
 ---
 
-## Ordine consigliato
+## Ordine consigliato — aggiornato dopo A0
 
-1. **A1** — variante sample-based + Variant Subsystem. È il blocco che separa "simula"
-   da "va in hardware", e tutto il blocco C dipende da lui.
-2. **A4** — board plugin PYNQ-Z1 (mezza giornata, sblocca il dubbio su A3/A4).
-3. **A2** — chiudere i segnaposto di handshake e priming.
-4. P8 register map → P9 generazione HDL → **Dario**: P11/P12.
+Il riorientamento cambia le priorità: **A1 non serve più**, perché con AXI4-Lite il
+dato non è più un vettore su AXI4-Stream. Resta come riferimento se un domani si
+tornerà allo stream.
+
+1. **Concordare il contratto** con l'altro ingegnere
+   ([`20_CONTRATTO_INTERFACCIA.md`](20_CONTRATTO_INTERFACCIA.md) §8: cinque domande).
+   È il passo che protegge tutto il resto, e costa mezza giornata.
+2. **Ricostruire i modelli su AXI4-Lite**: `soc_fpga` diventa CSR + FSM start/done +
+   watchdog + contatore di cicli, con il blocco di calcolo come segnaposto a latenza
+   configurabile. Poi `p.transport.kind = 'axi4lite'`.
+3. **A4 — board plugin PYNQ-Z1** (mezza giornata): toglie subito il dubbio più grosso
+   sulla fattibilità del deploy.
+4. **Reference design** partendo da `+vivado_base_2022_1` (AXI4-Lite, più piccolo
+   dello stream) → **Dario**, con Vivado 2022.1.
+5. **Bring-up**: `ID_VER` → registro R/W → un vettore noto → **la prima lettura di
+   `CYCLES`**. È lì che si scopre se i 33 µs sono raggiungibili.
+6. **Misurare le costanti dello stack PS** e sostituirle in `soc_params`: oggi sono
+   ordini di grandezza da letteratura.
+
+### Cosa resta di A1
+
+Il pattern Variant Subsystem e l'analisi sulla non-generabilità dei vettori restano
+validi e documentati: servono **se e quando** il payload crescerà oltre il
+break-even e si tornerà allo stream. Non buttarli.
