@@ -63,11 +63,16 @@ stack software del PS. → [`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md),
 - **Ricaduta su D1/D3**: `linux_driver` eliminato per aritmetica; trasporto e
   stack software risultano accoppiati, non indipendenti.
 
-### P11 · Board plugin PYNQ-Z1
-Copiare `toolbox\hdlcoder\boards\amd\+ZedBoard` → `+PYNQZ1`; `FPGAPackage` da
-`clg484` a `clg400`; pin da *Digilent PYNQ-Z1 Reference Manual*.
-- **Gate G11**: la PYNQ-Z1 compare nella lista board dell'HDL Workflow Advisor.
-- **Farlo presto**: mezza giornata, e toglie il dubbio più grosso sulla fattibilità.
+### P11 · Board plugin PYNQ-Z1 ✅ *(29/07)*
+`hdlplugins/+PYNQZ1` + `hdlcoder_board_customization.m`, sul modello dell'esempio
+Trenz spedito nel prodotto. → [`23_BOARD_PYNQZ1`](23_BOARD_PYNQZ1.md).
+- I pin **non** vengono dal *Reference Manual* ma dai board file Vivado che il
+  gruppo ha già installato, che sono la stessa fonte che legge Vivado.
+- **Gate G11** ✅ T14 (parte automatica): registrazione esercitata attraverso il
+  riferimento registrato, e i 10 pin dichiarati riconfrontati con
+  `part0_pins.xml` — sigla e standard di I/O. Quattro mutazioni catturate.
+- **Resta la conferma manuale**: che la board compaia nel menu del Workflow
+  Advisor non è verificabile da script (registro p-coded, §23.6).
 
 ---
 
@@ -135,7 +140,8 @@ Tenere un ILA su FSM, handshake e un valore del datapath **già nella prima buil
 | G8 | le otto domande del contratto hanno risposta | ⬜ altro ingegnere |
 | G9 | invarianti del wrapper, **watchdog provato in fallimento** | ✅ T12 |
 | G10 | numero di cicli disponibili, riproducibile | ✅ T13 |
-| G11 | PYNQ-Z1 nella lista board | ⬜ |
+| G11 | plugin PYNQ-Z1: registrazione + pin verificati | ✅ T14 |
+| G11b | PYNQ-Z1 nel menu del Workflow Advisor | ⬜ conferma manuale |
 | G12 | reference design costruisce *(uscita datata: 2 settimane)* | ⬜ Dario |
 | G13 | bitstream, slack positivo su design con registri | ⬜ Dario |
 | G15 | 100 % match on-board + prima lettura di `CYCLES` | ⬜ board |

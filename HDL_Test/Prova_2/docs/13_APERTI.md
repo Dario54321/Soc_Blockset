@@ -153,20 +153,31 @@ variabile invece di aggiungerla) o la 2024.1.
 
 ---
 
-## A4 — Board PYNQ-Z1 da registrare in HDL Coder
+## A4 — Board PYNQ-Z1 registrata in HDL Coder ✅ *(29/07)*
 
-Non ancora iniziato. Materiale già individuato:
+Fatto: `hdlplugins/+PYNQZ1` + `hdlcoder_board_customization.m`, gate T14, tutto in
+[`23_BOARD_PYNQZ1`](23_BOARD_PYNQZ1.md). I pin non sono stati trascritti da un
+manuale: vengono dai board file Vivado che il gruppo ha già installato, e il gate
+li riconfronta con quelli pin per pin.
 
-- I board plugin AMD sono **nel prodotto base** (`toolbox\hdlcoder\boards\amd\`), non
-  servono support package: `+ZedBoard`, `+ZynqZC702`, `+ZynqZC706`, `+ZCU102`, …
-- Dentro `+ZedBoard` c'è già `+vivado_stream_2022_1` con `plugin_rd.m`,
-  `system_top.tcl` (663 righe) e `axistream.dtsi`.
-- Piano: copiare `+ZedBoard` → `+PYNQZ1`, cambiare `FPGAPackage` da `clg484` a
-  `clg400`, rimappare i pin da *Digilent PYNQ-Z1 Reference Manual*, e nel `.tcl`
-  sostituire il board part usando i **board files Vivado che il gruppo già possiede**
-  (`apply_bd_automation … -config {apply_boardpreset "1"}` invece di trascrivere i
-  `PCW_*` a mano).
-- **Da fare per primo del blocco**: mezza giornata, e dice subito se la strada regge.
+**Resta una conferma manuale**, una volta sola: aprire l'HDL Workflow Advisor su un
+modello con DUT e verificare che *Digilent PYNQ-Z1* compaia fra le target platform.
+Non è automatizzabile — il registro delle board di HDL Coder è p-coded e non espone
+API pubbliche (§23.6).
+
+**Punti aperti che scaricano su P12** (reference design, Dario):
+
+- **Device tree**: il plugin non ne dichiara. La ZedBoard usa `zynq-zed.dtsi`, che
+  descrive le periferiche del PS di *quella* board. Serve solo al flusso Linux.
+- **`JTAGChainPosition = 2`**: preso dal precedente Zynq-7000, non verificato su
+  questa board. Si conferma al primo collegamento.
+- **Board file non versionati**: stanno in Vivado
+  (`C:\AMDDesignTools\Boards_Drivers\pynq-z1\1.0` su questa macchina), non nel
+  repository — sono di terze parti e il pacchetto scaricato non conteneva licenza.
+  Chi costruisce il bitstream deve averli installati.
+- **Identificatore della board**: `www.digilentinc.com:PYNQ-Z1:part0:1.0`, con il
+  `www.`. La Zybo che MathWorks distribuisce non ce l'ha: copiando da quella si
+  sbaglia.
 
 ---
 

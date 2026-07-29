@@ -58,6 +58,9 @@ function ok = run_regression()
     % --------------------------------------------------------------- T13
     results(end+1,:) = runTest('T13 overhead del wrapper costante (P10)', @() check_overhead());
 
+    % --------------------------------------------------------------- T14
+    results(end+1,:) = runTest('T14 board plugin PYNQ-Z1 (G11)', @() check_board());
+
     % ------------------------------------------------------------ report
     fprintf('-------------------------------------------\n');
     pass = all([results{:,2}]);
@@ -454,6 +457,23 @@ function check_wrapper()
     f = fullfile(fileparts(here), 'models', 'soc_wrapper_fpga.slx');
     assert(isfile(f), 'soc_wrapper_fpga.slx assente: eseguire build_wrapper_fpga.');
     run_wrapper_unit_sim();     % contiene le proprie assert, parlanti
+end
+
+
+% =====================================================================
+function check_board()
+%CHECK_BOARD  Gate G11 — il plugin board PYNQ-Z1 (docs\23_BOARD_PYNQZ1).
+%
+%   Il livello 2 (confronto dei pin con i board file Vivado) gira solo dove
+%   i board file esistono. Se mancano, check_board_plugin lo scrive su
+%   stderr e il gate resta verde sul solo livello 1: e' una verifica
+%   ridotta, non un successo pieno, e deve VEDERSI.
+
+    R = check_board_plugin();
+    if ~R.level2
+        fprintf(2, ['  [T14] ATTENZIONE: verificata solo la registrazione. ' ...
+                    'I pin NON sono stati confrontati (board file assenti).\n']);
+    end
 end
 
 

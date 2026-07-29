@@ -514,3 +514,52 @@ Due inciampi:
   il 29/07 con `run_regression`: 255 con il filtro, 0 senza. Se serve filtrare,
   usare `Select-String` da solo (non consuma tutto l'input in anticipo ma non
   chiude la pipe) e leggere il verdetto, non il codice d'uscita.
+
+---
+
+## 14. `hdlcoder.Board` non costruisce un `hdlcoder.Board`
+
+```
+PYNQZ1.plugin_board ha restituito un hdlturnkey.plugin.BoardIP,
+non un hdlcoder.Board.
+```
+
+`hB = hdlcoder.Board` è una **facciata**: l'oggetto che restituisce è di classe
+`hdlturnkey.plugin.BoardIP`. Quindi:
+
+```matlab
+isa(hB, 'hdlcoder.Board')      % <- FALSO, anche su un plugin corretto
+```
+
+Verificare la classe è comunque la cosa sbagliata da fare: `hdlturnkey.plugin.BoardIP`
+è un nome interno che può cambiare. Ciò che conta è che l'oggetto **esponga e abbia
+popolato** le proprietà che descrivono la board:
+
+```matlab
+need = {'BoardName','FPGAVendor','FPGAFamily','FPGADevice','FPGAPackage','FPGASpeed'};
+for k = 1:numel(need)
+    assert(isprop(hB, need{k}) && ~isempty(hB.(need{k})), ...);
+end
+```
+
+**Le interfacce non si rileggono.** Ciò che si aggiunge con
+`addExternalIOInterface` finisce in stato privato: non esiste una proprietà
+pubblica `ExternalIOInterfaces`. Chi vuole verificare i pin dichiarati deve
+tenerli in una fonte propria — è il motivo per cui esistono
+`+PYNQZ1/board_pins.m` e la regola R2 applicata lì
+([`23_BOARD_PYNQZ1` §23.4](23_BOARD_PYNQZ1.md)).
+
+**Non c'è API pubblica per elencare le board registrate.** Il registro è p-coded
+(`toolbox\hdlcoder\ipcore\+hdlcoder\Workflow.p`); l'unico `.m` leggibile in quel
+pacchetto è `Board.m` e `ReferenceDesign.m`. `hdlcoder.WorkflowConfig(...,'TargetWorkflow','IP Core Generation')`
+restituisce un `hwcli.config.IPCoreConfig` che **non ha** `TargetPlatform`:
+
+```
+Unrecognized property 'TargetPlatform' for class 'hwcli.config.IPCoreConfig'.
+```
+
+Da cui una trappola in cui sono caduto: una prova costruita su quella proprietà
+*sembrava* discriminare (accettava la nostra board, rifiutava una inesistente) ma
+**entrambi i rami fallivano con lo stesso errore**. Una controprova che fallisce
+per lo stesso motivo della prova non è una controprova — è un gate che non ha mai
+funzionato in nessuna delle due direzioni.

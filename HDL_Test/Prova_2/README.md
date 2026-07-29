@@ -31,7 +31,7 @@ matB : errore max = 0
 sonda: errore max = 0        (LSB del formato = 0.125)
 ```
 
-A fine Test 1: 11 gate verdi (oggi 13), ognuno validato con una mutazione che
+A fine Test 1: 11 gate verdi (oggi 14), ognuno validato con una mutazione che
 riproduce un difetto reale.
 Ha prodotto la struttura a tre modelli, le ricette di configurazione, la suite di
 gate e le note API — materiale che vale indipendentemente dal payload.
@@ -45,7 +45,7 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | P8 · contratto d'interfaccia | ✅ bozza — **8 domande in attesa di risposta** |
 | P9 · wrapper: CSR, FSM start/done, watchdog, contatore | ✅ gate G9 (T12), 3 mutazioni catturate |
 | P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
-| P11 · board plugin PYNQ-Z1 | 🔄 **prossimo passo** |
+| P11 · board plugin PYNQ-Z1 | ✅ gate G11 (T14) → [`docs/23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) — resta una conferma manuale |
 | P12–P13 · reference design, bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
 | P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
 
@@ -59,7 +59,7 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | **Board** | SoC Blockset per simulare, **HDL Coder per deployare** | la PYNQ-Z1 non è fra le board supportate da SoC Blockset |
 | **Integrazione** | **due IP separati** in Vivado | è il confine di proprietà: sostituire un lato non obbliga a rigenerare l'altro |
 | **Protocollo** | `start`/`done` **insensibile alla latenza** | il blocco di terzi cambierà; l'adattamento sta nel nostro wrapper |
-| **Stack PS** | ⚠️ **da decidere** | pesa quanto il bus: un driver kernel è fuori budget a prescindere dal protocollo |
+| **Stack PS** | ⚠️ **da decidere fra due** | bare-metal (3150 cicli) o Linux mappato (2300): il prezzo di Linux è **850 cicli**. Un driver kernel è fuori per aritmetica |
 
 Motivazioni e alternative scartate: [`docs/01_PIANO.md`](docs/01_PIANO.md).
 
@@ -83,6 +83,13 @@ run_regression;        % PASS/FAIL dell'intera suite (~4 minuti)
 run_system_sim;        % solo la simulazione di sistema (~2 minuti)
 
 export_r2023b();       % REGOLA R1 — prima di ogni commit che tocca .slx
+```
+
+Per il deploy serve anche la board registrata in HDL Coder — una riga:
+
+```matlab
+addpath('hdlplugins')      % rende visibile la Digilent PYNQ-Z1
+check_board_plugin();      % e verifica che i pin combacino coi board file Vivado
 ```
 
 I modelli in `models/` (esclusi i `*_ref.slx`) sono **artefatti rigenerabili**:
@@ -123,7 +130,7 @@ S = latency_study();      % rifà lo studio: tabella overhead + tabella budget
 
 ## La suite di regressione
 
-Un comando, 13 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
+Un comando, 14 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 
 | Gate | Cosa verifica |
 |---|---|
@@ -136,6 +143,7 @@ Un comando, 13 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 | T11 | **G7**: catena end-to-end bit-esatta |
 | T12 | **G9**: invarianti del wrapper, `CYCLES` esatto, **watchdog** |
 | T13 | **G10**: l'overhead del wrapper è ancora 1 ciclo |
+| T14 | **G11**: plugin PYNQ-Z1 registrato, e i pin combaciano coi board file |
 
 Mutazioni usate per validarli:
 
@@ -149,6 +157,10 @@ Mutazioni usate per validarli:
 | contatore dei cicli sfasato di uno | T12 |
 | la FSM non torna a IDLE dopo `done` | T12 |
 | uno stadio di registro in più sul percorso `done` | T13 |
+| package `clg484` (quello della ZedBoard) al posto di `clg400` | T14 |
+| due pin LED invertiti | T14 |
+| `LVCMOS18` al posto di `LVCMOS33` | T14 |
+| riferimento di registrazione della board sbagliato | T14 |
 
 ---
 
@@ -161,6 +173,7 @@ Mutazioni usate per validarli:
 | [`13_APERTI.md`](docs/13_APERTI.md) | punti aperti e prossimi passi |
 | [`20_CONTRATTO_INTERFACCIA.md`](docs/20_CONTRATTO_INTERFACCIA.md) | il confine con il blocco di terzi — **8 domande aperte** |
 | [`22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) | **quanti cicli ha il blocco di calcolo**, e da cosa dipendono |
+| [`23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) | come la PYNQ-Z1 è stata registrata in HDL Coder |
 | [`11_NOTE_API.md`](docs/11_NOTE_API.md) | diario delle scoperte: messaggi d'errore esatti, cause, soluzioni |
 
 **Il resto:**
@@ -190,11 +203,13 @@ scripts/
   latency_study.m          P10: overhead misurato + cicli disponibili per stack PS
   run_system_sim.m         simulazione di sistema + confronto numerico
   run_regression.m         un comando → PASS/FAIL
+  check_board_plugin.m     verifica il plugin board contro i board file Vivado
   export_r2023b.m          REGOLA R1
 models/                    soc_top · soc_fpga · soc_proc · soc_wrapper_fpga
                            + *_ref.slx (storici, read-only)
 test/                      vectors.mat (rigenerabile, non versionato)
-hdlplugins/                (vuota) board plugin + reference design PYNQ-Z1
+hdlplugins/                +PYNQZ1 (plugin board) + hdlcoder_board_customization.m
+                           il reference design manca ancora: e' P12, di Dario
 ps/                        (vuota) lato ARM
 vivado/                    (vuota) progetto e report, rigenerabili
 ```

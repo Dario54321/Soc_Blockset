@@ -14,9 +14,12 @@ più il suo wrapper**.
 
 **Stato**: l'infrastruttura simula ed è verificata bit-esatta (Test 1, concluso).
 Il wrapper AXI4-Lite — CSR, handshake `start`/`done`, watchdog, contatore di cicli —
-è costruito e verificato in simulazione (Test 2). **Niente è ancora girato su
-hardware**: il prossimo passo che richiede la board è il deploy, e una parte
-(reference design, bitstream) è in carico a Dario perché serve Vivado 2022.1.
+è costruito e verificato in simulazione, e la PYNQ-Z1 è registrata in HDL Coder
+(Test 2). **Niente è ancora girato su hardware**: da qui in poi serve la board, e il
+prossimo passo (reference design, bitstream) è in carico a Dario perché richiede
+Vivado 2022.1.
+
+Tutto ciò che si poteva fare senza hardware è fatto.
 
 > ### ⚠ Otto domande in attesa
 > Il [contratto d'interfaccia](HDL_Test/Prova_2/docs/20_CONTRATTO_INTERFACCIA.md) §8
@@ -65,7 +68,8 @@ HDL_Test/
     README.md                 stato, comandi, architettura
     docs/                     diagnosi, piano, procedura, note API, punti aperti
     scripts/                  tutto è generato da script
-    models/                   soc_top · soc_fpga · soc_proc (rigenerabili)
+    models/                   soc_top · soc_fpga · soc_proc · soc_wrapper_fpga
+    hdlplugins/               board Digilent PYNQ-Z1 per HDL Coder
 ```
 
 `Prova_1` e le cartelle `HDL_Test/vivado_synth*` sono **materiale storico**: si
@@ -100,8 +104,14 @@ Da lì esce il numero da mettere in mano all'altro ingegnere:
 > **ordine dei 3000 cicli a 100 MHz** — ~3150 con PS bare-metal, ~2300 con Linux e
 > registri mappati. → [`22_STUDIO_LATENZA`](HDL_Test/Prova_2/docs/22_STUDIO_LATENZA.md)
 
-**13 gate di regressione, tutti provati anche in fallimento** — compresi il watchdog
-(fatto tacere di proposito) e il contatore dei cicli.
+**Board PYNQ-Z1 registrata in HDL Coder.** Non è fra le sedici che MathWorks
+fornisce: `HDL_Test/Prova_2/hdlplugins/+PYNQZ1`. I pin non vengono da un manuale ma
+dai **board file Vivado che il gruppo ha già installato**, e un gate li riconfronta
+con quelli pin per pin.
+→ [`23_BOARD_PYNQZ1`](HDL_Test/Prova_2/docs/23_BOARD_PYNQZ1.md)
+
+**14 gate di regressione, tutti provati anche in fallimento** — compresi il watchdog
+(fatto tacere di proposito), il contatore dei cicli e la mappatura dei pin.
 
 ### Cosa NON è ancora dimostrato
 
