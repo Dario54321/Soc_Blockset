@@ -96,6 +96,11 @@ function R = check_board_plugin(boardFilesDir, verbose)
         'part0_pins.xml assente in %s', boardFilesDir);
     txt = fileread(xmlFile);
 
+    % I board file non sono nel repository (non hanno licenza): al loro posto
+    % c'e' l'impronta. Serve a chi lavora su un'altra macchina per sapere se
+    % ha la stessa revisione, che e' l'unica cosa che conta davvero.
+    R.impronte = check_manifest(boardFilesDir, verbose);
+
     % La part dichiarata dai board file deve essere la stessa del plugin:
     % se il gruppo aggiorna i board file a una revisione diversa, si scopre qui.
     tk = regexp(txt, 'part_info\s+part_name\s*=\s*"([^"]+)"', 'tokens', 'once');
@@ -140,6 +145,53 @@ end
 
 
 % =====================================================================
+function ok = check_manifest(dir_, verbose)
+%CHECK_MANIFEST  I board file trovati sono quelli su cui e' stato fatto il lavoro?
+%
+%   Non solleva errore su una revisione diversa: potrebbe essere legittima
+%   (un aggiornamento a monte). Ma lo dice forte, perche' un board file
+%   diverso significa pin o preset del PS diversi da quelli documentati.
+
+    m  = board_files_manifest();
+    ok = true;
+    for k = 1:numel(m.file)
+        f = fullfile(dir_, m.file(k).nome);
+        if ~isfile(f)
+            ok = false;
+            if verbose
+                fprintf(2, '[board file] %s assente in %s\n', m.file(k).nome, dir_);
+            end
+            continue
+        end
+        got = sha256_of(f);
+        if ~strcmp(got, m.file(k).sha256)
+            ok = false;
+            if verbose
+                fprintf(2, ['[board file] %s DIVERSO da quello usato in questo lavoro.\n' ...
+                    '  atteso %s\n  trovato %s\n' ...
+                    '  Origine dichiarata: %s\n' ...
+                    '  Pin e preset del PS potrebbero non essere quelli documentati.\n'], ...
+                    m.file(k).nome, m.file(k).sha256, got, m.sorgente);
+            end
+        end
+    end
+end
+
+
+function h = sha256_of(file)
+%SHA256_OF  SHA-256 di un file, in esadecimale minuscolo.
+%   Via Java: e' lo stesso algoritmo di `Get-FileHash -Algorithm SHA256` e di
+%   `sha256sum`, quindi le impronte nel manifest sono verificabili anche senza
+%   MATLAB. Simulink.getFileChecksum NON va bene: e' un checksum interno.
+    fid = fopen(file, 'r');
+    c   = onCleanup(@() fclose(fid));
+    b   = fread(fid, Inf, '*uint8');
+    md  = java.security.MessageDigest.getInstance('SHA-256');
+    d   = typecast(md.digest(b), 'uint8');
+    h   = lower(reshape(dec2hex(d, 2).', 1, []));
+end
+
+
 function n = total_pins()
     n = 0;
     for io = PYNQZ1.board_pins(); n = n + numel(io.pins); end

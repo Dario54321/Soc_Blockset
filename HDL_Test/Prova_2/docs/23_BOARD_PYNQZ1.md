@@ -66,6 +66,32 @@ dichiara `name="PYNQ-Z1"` ma Vivado registra `pynq-z1`. Verificato con
 questo documento riportava la forma maiuscola; il gate T15 ora deriva la
 stringa da `board.xml` e la confronta ([`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md) §24.3).
 
+## 23.2bis Attenzione: di modi per "registrare la board" ce ne sono **due**
+
+Sono per due flussi diversi e non sono intercambiabili. Confonderli fa perdere
+tempo, perché ciascuno risolve un problema che l'altro non ha.
+
+| | `soc.sdk.BoardSupport` | `hdlcoder.Board` *(usato qui)* |
+|---|---|---|
+| flusso | SoC Blockset / SoC Builder | HDL Coder *IP Core Generation* |
+| produce | software ARM **+** bitstream dallo stesso modello | l'IP core e il progetto Vivado |
+| registrazione | `tgtObj.save()` | `hdlcoder_board_customization.m` sul path |
+| stato nel progetto | provata funzionante, **non** usata per una PynqZ1 vera | usata, è quella di P11 |
+
+L'altro filone del progetto (branch `main`, `docs/socbuilder_notes.md`) ha
+trovato e provato `soc.sdk.BoardSupport`, che è **la via giusta per SoC
+Builder**. Qui si è usato `hdlcoder.Board` perché la decisione D2 in
+[`01_PIANO`](01_PIANO.md) è **SoC Blockset per simulare, HDL Coder per
+deployare**.
+
+Quella decisione risulta confermata dall'esperienza registrata su `main`: il
+percorso SoC Builder si è fermato su `Unrecognized field name "bit_file"` dopo
+aver dovuto scoprire quattro regole strutturali non documentate del validatore.
+Una di quelle quattro — *il modello FPGA deve avere device type `ASIC/FPGA` e
+`HardwareBoard=None`* — è **la stessa cosa** che qui era stata trovata per
+un'altra strada ([`11_NOTE_API` §1](11_NOTE_API.md)). Due percorsi indipendenti,
+stessa conclusione: è un buon segno per entrambi.
+
 ## 23.3 Il silicio
 
 | | PYNQ-Z1 | ZedBoard |

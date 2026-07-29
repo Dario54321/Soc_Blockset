@@ -19,16 +19,22 @@ Informazioni arrivate dopo la costruzione di `Prova_2`, che ne cambiano il targe
 
 ### Conseguenza: il trasporto passa a AXI4-Lite
 
-`budget_report()` calcola l'equazione di progetto. Con `nx=3, nu=1` a 100 MHz
-(3300 cicli totali):
+`budget_report()` calcola l'equazione di progetto. Con `nx=6, nu=1` a 100 MHz
+(3300 cicli totali) — **due** vettori 3×1, non uno, come chiarito dopo la prima
+stesura di questa sezione:
 
 | trasporto | stack PS | trasporto | cicli per il calcolo |
 |---|---|---:|---:|
-| **axi4lite** | **baremetal (polling)** | **1.05 µs** | **3195** |
-| axi4lite | linux mmap | 7.0 µs | 2600 |
-| axi4lite | linux, driver kernel | 35 µs | **budget esaurito** |
+| **axi4lite** | **baremetal (polling)** | **1.5 µs** | **3150** |
+| axi4lite | linux mmap | 10 µs | 2300 |
+| axi4lite | linux, driver kernel | 50 µs | **budget esaurito** |
 | axi4stream | baremetal (polling) | 2.0 µs | 3100 |
 | axi4stream | linux mmap / driver | 32 µs | 100 |
+
+> La curva su altre taglie di payload è in
+> [`20_CONTRATTO_INTERFACCIA` §9](20_CONTRATTO_INTERFACCIA.md); i cicli
+> effettivamente disponibili al blocco di calcolo, tolto l'overhead del
+> wrapper, in [`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md).
 
 Due letture:
 
@@ -54,18 +60,23 @@ parte specifica dello stream. E spariscono tre dei quattro segnaposto di
 [A2](#a2--segnaposto-ancora-presenti): priming dei buffer, back-pressure, nome del
 device DMA.
 
-> **Stato del codice.** `soc_params.m` contiene già il nuovo bersaglio (dimensioni,
-> budget, mappa registri del wrapper, modello di costo del trasporto) ma
-> `p.transport.kind` è ancora `'axi4stream'`, perché è ciò che i modelli
-> implementano oggi. Diventa `'axi4lite'` quando i modelli saranno ricostruiti.
+> **Stato del codice** *(aggiornato 29/07)*. `soc_params.m` contiene il bersaglio
+> corrente e `p.transport.kind` è ormai `'axi4lite'`: il wrapper esiste ed è
+> verificato. I modelli del Test 1 restano come implementazione AXI4-Stream della
+> stessa interfaccia, per quando il payload supererà i ~10–12 elementi.
 > Finché `p.mpc.confirmed` è `false`, ogni sessione emette un avviso: si sta
 > progettando su ipotesi, e dev'essere visibile.
 
 ---
 
-## A1 — BLOCCANTE per l'hardware: `tdata` vettoriale non è generabile
+## A1 — ~~BLOCCANTE~~ superato dal riorientamento: `tdata` vettoriale non è generabile
 
-**Stato attuale**: il modello FPGA riceve `tdata` come **vettore di 25 elementi
+> **Non è più un bloccante** dal 28/07: con AXI4-Lite il dato non viaggia più su
+> AXI4-Stream. Resta qui perché l'analisi è valida e torna utile **se e quando**
+> il payload supererà il break-even e si tornerà allo stream. Vedi §«Cosa resta
+> di A1» in fondo.
+
+**Stato allora**: il modello FPGA riceve `tdata` come **vettore di 25 elementi
 `int32`**. Va bene in simulazione (la catena end-to-end è bit-esatta, gate G7 verde),
 ma **non arriva in hardware**.
 

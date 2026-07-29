@@ -31,7 +31,7 @@ matB : errore max = 0
 sonda: errore max = 0        (LSB del formato = 0.125)
 ```
 
-A fine Test 1: 11 gate verdi (oggi 14), ognuno validato con una mutazione che
+A fine Test 1: 11 gate verdi (oggi 15), ognuno validato con una mutazione che
 riproduce un difetto reale.
 Ha prodotto la struttura a tre modelli, le ricette di configurazione, la suite di
 gate e le note API — materiale che vale indipendentemente dal payload.
@@ -225,6 +225,31 @@ hdlplugins/                +PYNQZ1: plugin board + reference design AXI4-Lite
 ps/                        (vuota) lato ARM
 vivado/                    (vuota) progetto e report, rigenerabili
 ```
+
+---
+
+## Chi può eseguire cosa
+
+Il repository è condiviso fra due postazioni con versioni diverse. Questa
+tabella evita il tentativo a vuoto.
+
+| | serve | verificato? |
+|---|---|---|
+| **aprire i modelli** `.slx` | R2023b o successiva | ✅ ad ogni commit, gate `export_r2023b` |
+| **rigenerare i modelli** (`build_*`) e la regressione | **R2026a** | ✅ ricostruzione da zero, 131 s + 15 gate |
+| **usare la board e il reference design** in HDL Coder | R2023b+ *in linea di principio* | ⚠️ **non provato**: qui non c'è R2023b |
+| **costruire il block design / il bitstream** | **Vivado 2022.1 o 2024.1** | ⚠️ qui c'è solo la 2026.1 → `validate_refdesign` dà `parziale` |
+
+> **La regola R1 garantisce i modelli, non gli script.** `export_r2023b` verifica
+> che ogni `.slx` versionato si apra con R2023b; nessuno ha mai eseguito gli
+> script di questa cartella su R2023b, e non c'è un gate che lo affermi.
+> Un'ispezione ha escluso costrutti introdotti dopo il 2023 nei file che servono
+> per il deploy (`hdlplugins/`, `check_refdesign`, `validate_refdesign`), ma
+> **ispezionare non è provare**.
+>
+> Chi è su R2023b e vuole solo arrivare al bitstream **non ha bisogno dei nostri
+> script**: gli bastano `addpath('hdlplugins')` e l'HDL Workflow Advisor. Il
+> percorso minimo è in [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.5.
 
 ---
 
