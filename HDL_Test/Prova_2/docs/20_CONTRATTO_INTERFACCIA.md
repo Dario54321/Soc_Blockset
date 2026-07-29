@@ -149,18 +149,41 @@ Costa circa **30 flip-flop** e **non richiede alcuna modifica al blocco di
 calcolo**. Serve a trasformare "il blocco è lento" da impressione a numero, che è
 la sola base su cui si possa poi decidere qualcosa.
 
-Il budget di riferimento:
+### Quanti cicli ha a disposizione il blocco di calcolo
+
+Il conto è in [`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md), qui il risultato:
 
 ```
-33 µs @ 100 MHz  =  3300 cicli
-   − trasporto AXI4-Lite (~100 cicli)
-   ─────────────────────────────────
-   ≈ 3200 cicli disponibili per il calcolo
+33 µs @ 100 MHz            =  3300 cicli
+   − trasporto ARM ↔ FPGA  =  dipende dallo stack software del PS
+   − overhead del wrapper  =  1 ciclo (misurato)
+   ────────────────────────────────────────────────────────────────
 ```
 
-> I 33 µs vengono da un paper, **non sono stati misurati da noi**. Vanno trattati
-> come target di riferimento dichiarato finché il bring-up non produce il numero
-> vero.
+| stack software del PS | cicli per il calcolo |
+|---|---:|
+| bare-metal | **~3150** |
+| Linux con registri mappati (UIO/`mmap`) | **~2300** |
+
+**La cifra da usare oggi è l'ordine dei 3000 cicli**, cioè ~30 µs a 100 MHz.
+Le due righe differiscono per una scelta che sta dalla nostra parte del confine,
+non dalla vostra: appena è presa vi diamo il numero singolo.
+
+Due avvertenze, entrambe nostre e non vostre:
+
+> I 33 µs vengono da un paper, **non sono stati misurati da noi**. Sono un target
+> di riferimento dichiarato finché il bring-up non produce il numero vero.
+
+> I costi di trasporto sono **ordini di grandezza da letteratura**, non misure su
+> questa board. Bastano a scartare un'alternativa che costa trenta volte più di
+> un'altra; non bastano a garantire la terza cifra.
+
+### `CYCLES` conta un ciclo in più del vostro blocco
+
+Il valore letto è **latenza del vostro blocco + 1**. Quel ciclo è il registro
+sull'uscita `done`, che in hardware c'è comunque, e sta dal lato del confine —
+non ve lo stiamo addebitando. Se vi serve confrontarlo con una vostra misura
+interna, il termine di paragone è `CYCLES − 1`.
 
 ---
 

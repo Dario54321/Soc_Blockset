@@ -86,16 +86,29 @@ silenzioso.
 resta costruito e verificato. La soglia registri↔stream sta intorno a **10–12
 elementi** su bare-metal: se i vettori diventano quattro, si riapre.
 
-### D3 · Stack software del PS — **da decidere, ma non è un dettaglio** *(aperta)*
+### D3 · Stack software del PS — **ristretta a due opzioni** *(29/07)*
 
-La curva mostra che lo stack pesa **quanto o più del bus**. Con 33 µs:
+La curva mostrava già che lo stack pesa **quanto o più del bus**. P10 l'ha
+quantificato per il trasporto scelto ([`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md)),
+e il verdetto con AXI4-Lite e 6 elementi è:
 
-- driver kernel con interrupt → **fuori a prescindere dal protocollo**;
-- Linux + mmap in polling → regge fino a ~25–30 elementi;
-- bare-metal → regge tutto.
+| stack | cicli al calcolo | quota del budget |
+|---|---:|---|
+| `baremetal` (poll o irq) | 3149 | ~95 % |
+| `linux_mmap` | 2299 | ~70 % |
+| `linux_driver` | **−1701** | **fuori** |
 
-PYNQ/Python va benissimo per il **bring-up**; per l'anello a regime va deciso e
-misurato. **Decisione da prendere prima di P13.**
+`linux_driver` non è "stretto", è impossibile: il trasporto da solo costa 50 µs
+contro 33 di budget. Eliminato per aritmetica, non per preferenza.
+
+**Trasporto e stack non sono decisioni indipendenti** — questa formulazione
+sostituisce quella precedente. Il costo per-accesso si moltiplica per il numero
+di accessi, che è il protocollo a fissare: cambiare D2 rimescola questa tabella.
+
+La scelta fra i due superstiti resta aperta e non è tecnica in senso stretto:
+dipende da cosa deve fare il PS oltre a questo anello. **Il prezzo di Linux ora
+è noto: 850 cicli.** PYNQ/Python va benissimo per il **bring-up** in ogni caso.
+**Decisione da prendere prima di P13.**
 
 ### D4 · Integrazione con il blocco di terzi — **due IP separati** *(28/07)*
 

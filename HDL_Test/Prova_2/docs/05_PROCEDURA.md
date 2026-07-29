@@ -43,18 +43,25 @@ Congelare segnali, protocollo, formato numerico, watchdog e proprietà.
 - **Gate G8**: le otto domande del §8 hanno risposta dall'altro ingegnere. ⬜
   *Non blocca P9–P11: il wrapper è parametrico.*
 
-### P9 · Wrapper: CSR, FSM, watchdog, contatore
-`soc_fpga` diventa il wrapper; il blocco di calcolo è un **segnaposto a latenza
+### P9 · Wrapper: CSR, FSM, watchdog, contatore ✅ *(28/07)*
+Il wrapper è `models\soc_wrapper_fpga.slx`, generato da
+`scripts\build_wrapper_fpga.m`; il blocco di calcolo è un **segnaposto a latenza
 configurabile**.
-- **Gate G9**: invarianti I1–I7 di `21_SPEC_WRAPPER` §3 verificate; criteri
+- **Gate G9** ✅ T12: invarianti I1–I7 di `21_SPEC_WRAPPER` §3 verificate; criteri
   B1–B4 superati, **compreso B3 provato facendo tacere il blocco di proposito**.
+  Tre mutazioni catturate (`21_SPEC_WRAPPER` §6).
 
-### P10 · Studio di sensibilità alla latenza
+### P10 · Studio di sensibilità alla latenza ✅ *(29/07)*
 Far variare la latenza del segnaposto e trovare dove il budget si rompe, per ogni
-stack software del PS.
-- **Deliverable**: curva latenza → margine, e **il numero di cicli da comunicare
-  all'altro ingegnere**.
-- **Gate G10**: il numero è riproducibile da script e riporta le sue ipotesi.
+stack software del PS. → [`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md),
+`scripts\latency_study.m`.
+- **Deliverable**: overhead del wrapper **misurato** (1 ciclo, costante su tre
+  ordini di grandezza) e il numero di cicli per l'altro ingegnere: **~3000 con
+  bare-metal, ~2300 con Linux mappato**, da confermare a misura.
+- **Gate G10** ✅ T13: riproducibile da script, con le ipotesi dichiarate.
+  Provato in fallimento con uno stadio di registro in più sul percorso `done`.
+- **Ricaduta su D1/D3**: `linux_driver` eliminato per aritmetica; trasporto e
+  stack software risultano accoppiati, non indipendenti.
 
 ### P11 · Board plugin PYNQ-Z1
 Copiare `toolbox\hdlcoder\boards\amd\+ZedBoard` → `+PYNQZ1`; `FPGAPackage` da
@@ -126,8 +133,8 @@ Tenere un ILA su FSM, handshake e un valore del datapath **già nella prima buil
 | G6 | struttura a tre modelli riconosciuta e compilante | ✅ T10 |
 | G7 | catena end-to-end bit-esatta | ✅ T11 |
 | G8 | le otto domande del contratto hanno risposta | ⬜ altro ingegnere |
-| G9 | invarianti del wrapper, **watchdog provato in fallimento** | ⬜ |
-| G10 | numero di cicli disponibili, riproducibile | ⬜ |
+| G9 | invarianti del wrapper, **watchdog provato in fallimento** | ✅ T12 |
+| G10 | numero di cicli disponibili, riproducibile | ✅ T13 |
 | G11 | PYNQ-Z1 nella lista board | ⬜ |
 | G12 | reference design costruisce *(uscita datata: 2 settimane)* | ⬜ Dario |
 | G13 | bitstream, slack positivo su design con registri | ⬜ Dario |

@@ -507,3 +507,10 @@ Due inciampi:
   censendo i blocchi e lo stato dei link di libreria, non fidandosi del messaggio.
 - Il codice di una MATLAB Function si scrive con
   `ch = sfroot().find('-isa','Stateflow.EMChart','Path',[mdl '/nome']); ch.Script = codice;`
+- **`matlab -batch` esce 255 se si tronca la pipeline PowerShell.** Filtrare
+  l'output con `| Select-Object -First N` chiude la pipe mentre MATLAB sta ancora
+  scrivendo, PowerShell termina il processo e il codice d'uscita diventa 255 —
+  che si legge come "la regressione è fallita" mentre invece è passata. Successo
+  il 29/07 con `run_regression`: 255 con il filtro, 0 senza. Se serve filtrare,
+  usare `Select-String` da solo (non consuma tutto l'input in anticipo ma non
+  chiude la pipe) e leggere il verdetto, non il codice d'uscita.

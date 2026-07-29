@@ -13,8 +13,10 @@ nostro perimetro: il nostro deliverable è
 più il suo wrapper**.
 
 **Stato**: l'infrastruttura simula ed è verificata bit-esatta (Test 1, concluso).
-In corso la ricostruzione su AXI4-Lite (Test 2), che è il trasporto corretto per il
-payload e il budget reali. Niente è ancora girato su hardware.
+Il wrapper AXI4-Lite — CSR, handshake `start`/`done`, watchdog, contatore di cicli —
+è costruito e verificato in simulazione (Test 2). **Niente è ancora girato su
+hardware**: il prossimo passo che richiede la board è il deploy, e una parte
+(reference design, bitstream) è in carico a Dario perché serve Vivado 2022.1.
 
 > ### ⚠ Otto domande in attesa
 > Il [contratto d'interfaccia](HDL_Test/Prova_2/docs/20_CONTRATTO_INTERFACCIA.md) §8
@@ -22,6 +24,14 @@ payload e il budget reali. Niente è ancora girato su hardware.
 > formato numerico e sul payload. Le più urgenti: **cosa sono i due vettori 3×1** che
 > attraversano il confine, e **cos'altro lo attraverserà** (i dati grezzi di
 > radar/lidar restano sull'ARM?). La seconda decide la taglia del progetto.
+
+> ### ⚠ Una decisione da prendere: cosa gira sull'ARM
+> Bare-metal o Linux con registri mappati. Non è una scelta tecnica in senso
+> stretto — dipende da cosa deve fare il PS oltre a questo anello — ma **il prezzo
+> ora è quantificato: 850 cicli, il 26 % del budget**
+> ([D3 in `01_PIANO`](HDL_Test/Prova_2/docs/01_PIANO.md)). Un driver di kernel Linux
+> è invece **fuori per aritmetica**: costerebbe 50 µs di solo trasporto contro 33 di
+> budget. Serve decidere prima del reference design.
 
 ---
 
@@ -75,16 +85,31 @@ ARM: calcola due matrici  → impacchetta in 25 elementi sfix32_En16
          → PL: reinterpreta  → spacchetta  → sonda aritmetica in virgola fissa
 ```
 
-Verifica end-to-end contro il modello di riferimento: **errore 0**. Undici gate di
-regressione, tutti provati anche in fallimento.
+Verifica end-to-end contro il modello di riferimento: **errore 0**.
 
 Ha prodotto ciò che serve indipendentemente dal payload: struttura a tre modelli,
 ricette di configurazione, suite di gate, note API sul toolchain.
+
+**Test 2 — il wrapper.** `soc_wrapper_fpga` implementa il confine verso il blocco di
+terzi: registri AXI4-Lite, macchina a stati insensibile alla latenza, **watchdog**
+(l'unica cosa che impedisce all'ARM di restare appeso se il blocco tace) e un
+contatore che espone la latenza reale nel registro `CYCLES`.
+
+Da lì esce il numero da mettere in mano all'altro ingegnere:
+
+> **ordine dei 3000 cicli a 100 MHz** — ~3150 con PS bare-metal, ~2300 con Linux e
+> registri mappati. → [`22_STUDIO_LATENZA`](HDL_Test/Prova_2/docs/22_STUDIO_LATENZA.md)
+
+**13 gate di regressione, tutti provati anche in fallimento** — compresi il watchdog
+(fatto tacere di proposito) e il contatore dei cicli.
 
 ### Cosa NON è ancora dimostrato
 
 - **Niente è mai girato su hardware reale.**
 - I 33 µs vengono da un paper, **non sono stati misurati da noi**.
+- I costi di trasporto ARM↔FPGA sono **ordini di grandezza da letteratura**, non
+  misure su questa board. Bastano a scartare un'alternativa che costa trenta volte
+  più di un'altra, non a garantire la terza cifra del numero qui sopra.
 - La latenza del blocco di calcolo di terzi è **ignota**: si misurerà con il
   registro `CYCLES` del wrapper, senza toccare il loro codice.
 - Handshake e priming del canale del Test 1 sono segnaposto: **qualunque misura di

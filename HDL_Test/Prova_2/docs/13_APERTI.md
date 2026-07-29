@@ -182,6 +182,14 @@ Non ancora iniziato. Materiale già individuato:
 - **Dimensionamento dei buffer**: le formule sono applicate come vincoli in
   `soc_params`, ma **non abbiamo ancora fatto lo studio di dropout** con durate di
   task variabili (è il vero contenuto di P7).
+- **Costi di trasporto** (`p.psStack.catalog`: `tAccessLite`, `tFixedDMA`): sono
+  **ordini di grandezza da letteratura**, non misure su questa board. Da P10 in
+  poi non sono più solo un'ipotesi interna: ci poggia il numero di cicli che
+  comunichiamo all'altro ingegnere ([`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md)).
+  Reggono la decisione qualitativa — lo scarto fra bare-metal e driver di kernel
+  è di trentatré volte, nessun errore di stima lo ribalta — ma **non la terza
+  cifra**. Vanno sostituiti da misure a P16, ed è lì che il numero passa da
+  "ordine dei 3000 cicli" a un valore.
 
 ---
 
@@ -192,11 +200,16 @@ dato non è più un vettore su AXI4-Stream. Resta come riferimento se un domani 
 tornerà allo stream.
 
 1. **Concordare il contratto** con l'altro ingegnere
-   ([`20_CONTRATTO_INTERFACCIA.md`](20_CONTRATTO_INTERFACCIA.md) §8: cinque domande).
-   È il passo che protegge tutto il resto, e costa mezza giornata.
-2. **Ricostruire i modelli su AXI4-Lite**: `soc_fpga` diventa CSR + FSM start/done +
-   watchdog + contatore di cicli, con il blocco di calcolo come segnaposto a latenza
-   configurabile. Poi `p.transport.kind = 'axi4lite'`.
+   ([`20_CONTRATTO_INTERFACCIA.md`](20_CONTRATTO_INTERFACCIA.md) §8).
+   È il passo che protegge tutto il resto, e costa mezza giornata. Ora c'è anche
+   un numero da mettergli in mano: **ordine dei 3000 cicli** (§5 del contratto).
+2. ~~**Ricostruire i modelli su AXI4-Lite**~~ ✅ *(28-29/07)*: `soc_wrapper_fpga`
+   è CSR + FSM start/done + watchdog + contatore, con il blocco di calcolo come
+   segnaposto a latenza configurabile; `p.transport.kind = 'axi4lite'`.
+2bis. **Decidere D3** — bare-metal o Linux mappato. Ora il prezzo è quantificato:
+   **850 cicli**, il 26 % del budget ([`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md)
+   §22.4). Non è una decisione tecnica in senso stretto: dipende da cosa deve fare
+   il PS oltre a questo anello. **Serve prima del reference design.**
 3. **A4 — board plugin PYNQ-Z1** (mezza giornata): toglie subito il dubbio più grosso
    sulla fattibilità del deploy.
 4. **Reference design** partendo da `+vivado_base_2022_1` (AXI4-Lite, più piccolo

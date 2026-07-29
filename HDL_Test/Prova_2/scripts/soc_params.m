@@ -104,8 +104,11 @@ p.compute.timeoutCycles = 3000;   % soglia del watchdog, programmabile a runtime
 %                 era di 25 elementi.
 %  La scelta e' una DECISIONE ARCHITETTURALE, motivata in
 %  docs/01_PIANO.md e ricalcolata da transport_budget() qui sotto.
-p.transport.kind = 'axi4stream';   % <- diventa 'axi4lite' quando i modelli
-                                   %    saranno ricostruiti (passo 2)
+%  Dal 28/07/2026 e' 'axi4lite': il wrapper (models/soc_wrapper_fpga.slx)
+%  esiste, compila ed e' verificato. I modelli del Test 1 (soc_fpga/proc/top)
+%  restano come implementazione AXI4-Stream della stessa interfaccia, e
+%  tornano in gioco se il payload superera' i ~10-12 elementi.
+p.transport.kind = 'axi4lite';
 
 %% ------------------------------------------------------------------
 %  Payload dello stream

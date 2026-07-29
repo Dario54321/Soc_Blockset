@@ -31,7 +31,8 @@ matB : errore max = 0
 sonda: errore max = 0        (LSB del formato = 0.125)
 ```
 
-11 gate verdi, ognuno validato con una mutazione che riproduce un difetto reale.
+A fine Test 1: 11 gate verdi (oggi 13), ognuno validato con una mutazione che
+riproduce un difetto reale.
 Ha prodotto la struttura a tre modelli, le ricette di configurazione, la suite di
 gate e le note API — materiale che vale indipendentemente dal payload.
 
@@ -42,9 +43,9 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | | |
 |---|---|
 | P8 · contratto d'interfaccia | ✅ bozza — **8 domande in attesa di risposta** |
-| P9 · wrapper: CSR, FSM start/done, watchdog, contatore | 🔄 **prossimo passo** |
-| P10 · studio di sensibilità alla latenza | ⬜ |
-| P11 · board plugin PYNQ-Z1 | ⬜ |
+| P9 · wrapper: CSR, FSM start/done, watchdog, contatore | ✅ gate G9 (T12), 3 mutazioni catturate |
+| P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
+| P11 · board plugin PYNQ-Z1 | 🔄 **prossimo passo** |
 | P12–P13 · reference design, bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
 | P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
 
@@ -102,11 +103,27 @@ axi4stream   linux (qualunque)     32.00                100
 axi4lite     linux_driver          50.00           esaurito
 ```
 
+Togliendo **l'overhead del wrapper — 1 ciclo, misurato** e non stimato
+([`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md)) — si arriva alla
+risposta da dare all'altro ingegnere:
+
+> **ordine dei 3000 cicli a 100 MHz** con PS bare-metal, **~2300** con Linux e
+> registri mappati. Da confermare a misura: le costanti di trasporto sono ordini
+> di grandezza da letteratura, non misure su questa board.
+
+`linux_driver` non è "stretto", è **impossibile**: 50 µs di trasporto contro 33
+di budget. Eliminato per aritmetica. Il corollario è che **trasporto e stack
+software del PS non sono decisioni indipendenti**.
+
+```matlab
+S = latency_study();      % rifà lo studio: tabella overhead + tabella budget
+```
+
 ---
 
 ## La suite di regressione
 
-Un comando, 11 gate, **ognuno verificato anche in fallimento**.
+Un comando, 13 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 
 | Gate | Cosa verifica |
 |---|---|
@@ -117,6 +134,8 @@ Un comando, 11 gate, **ognuno verificato anche in fallimento**.
 | T9 | **contratto ARM→FPGA**: pack e unpack sono operazioni inverse |
 | T10 | **G6**: struttura a 3 modelli riconosciuta e compilante |
 | T11 | **G7**: catena end-to-end bit-esatta |
+| T12 | **G9**: invarianti del wrapper, `CYCLES` esatto, **watchdog** |
+| T13 | **G10**: l'overhead del wrapper è ancora 1 ciclo |
 
 Mutazioni usate per validarli:
 
@@ -126,6 +145,10 @@ Mutazioni usate per validarli:
 | `matB` srotolata row-major invece che column-major | T7 |
 | ordine di impacchettamento invertito lato ARM | T9 |
 | `Register Write` rimosso (segnale grezzo verso il Register Channel) | T10 |
+| watchdog disattivato (`elseif false`) — l'ARM resterebbe appeso | T12 |
+| contatore dei cicli sfasato di uno | T12 |
+| la FSM non torna a IDLE dopo `done` | T12 |
+| uno stadio di registro in più sul percorso `done` | T13 |
 
 ---
 
@@ -137,6 +160,7 @@ Mutazioni usate per validarli:
 |---|---|
 | [`13_APERTI.md`](docs/13_APERTI.md) | punti aperti e prossimi passi |
 | [`20_CONTRATTO_INTERFACCIA.md`](docs/20_CONTRATTO_INTERFACCIA.md) | il confine con il blocco di terzi — **8 domande aperte** |
+| [`22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) | **quanti cicli ha il blocco di calcolo**, e da cosa dipendono |
 | [`11_NOTE_API.md`](docs/11_NOTE_API.md) | diario delle scoperte: messaggi d'errore esatti, cause, soluzioni |
 
 **Il resto:**
@@ -160,10 +184,15 @@ scripts/
   ref_model.m              il giudice, scritto nell'ordine di operazioni dell'hardware
   gen_vectors.m            510 vettori, seed 20260728
   build_soc_{fpga,proc,top}.m
+  build_wrapper_fpga.m     costruisce il wrapper AXI4-Lite (Test 2)
+  wrapper_sim_solve.m      simula un solve e dice cos'e' successo (usato da 2 chiamanti)
+  run_wrapper_unit_sim.m   banco del wrapper: 4 sotto-prove + watchdog
+  latency_study.m          P10: overhead misurato + cicli disponibili per stack PS
   run_system_sim.m         simulazione di sistema + confronto numerico
   run_regression.m         un comando → PASS/FAIL
   export_r2023b.m          REGOLA R1
-models/                    soc_top · soc_fpga · soc_proc  +  *_ref.slx (storici, read-only)
+models/                    soc_top · soc_fpga · soc_proc · soc_wrapper_fpga
+                           + *_ref.slx (storici, read-only)
 test/                      vectors.mat (rigenerabile, non versionato)
 hdlplugins/                (vuota) board plugin + reference design PYNQ-Z1
 ps/                        (vuota) lato ARM

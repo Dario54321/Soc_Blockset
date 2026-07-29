@@ -55,6 +55,9 @@ function ok = run_regression()
     % --------------------------------------------------------------- T12
     results(end+1,:) = runTest('T12 wrapper AXI4-Lite: invarianti (G9)', @() check_wrapper());
 
+    % --------------------------------------------------------------- T13
+    results(end+1,:) = runTest('T13 overhead del wrapper costante (P10)', @() check_overhead());
+
     % ------------------------------------------------------------ report
     fprintf('-------------------------------------------\n');
     pass = all([results{:,2}]);
@@ -451,6 +454,25 @@ function check_wrapper()
     f = fullfile(fileparts(here), 'models', 'soc_wrapper_fpga.slx');
     assert(isfile(f), 'soc_wrapper_fpga.slx assente: eseguire build_wrapper_fpga.');
     run_wrapper_unit_sim();     % contiene le proprie assert, parlanti
+end
+
+
+% =====================================================================
+function check_overhead()
+%CHECK_OVERHEAD  L'overhead del wrapper e' ancora 1 ciclo (docs\22_STUDIO_LATENZA).
+%
+%   Tutto il budget in 22_STUDIO_LATENZA poggia su "latenza del blocco =
+%   CYCLES - 1". Se una modifica alla FSM aggiunge uno stadio, il numero
+%   comunicato all'altro ingegnere diventa sbagliato senza che nulla protesti.
+%
+%   Due punti bastano a distinguere una costante da una funzione della
+%   latenza; latency_study ne usa sei e ha il proprio assert sulla costanza.
+
+    S = latency_study([], [3 40], false);
+    assert(S.overheadCycles == 1, 'checkOverhead:cambiato', ...
+        ['L''overhead del wrapper e'' %d cicli, non 1.\n' ...
+         'docs\\22_STUDIO_LATENZA e il numero dato all''altro ingegnere ' ...
+         'vanno rifatti.'], S.overheadCycles);
 end
 
 
