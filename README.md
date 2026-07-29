@@ -14,12 +14,13 @@ più il suo wrapper**.
 
 **Stato**: l'infrastruttura simula ed è verificata bit-esatta (Test 1, concluso).
 Il wrapper AXI4-Lite — CSR, handshake `start`/`done`, watchdog, contatore di cicli —
-è costruito e verificato in simulazione, e la PYNQ-Z1 è registrata in HDL Coder
-(Test 2). **Niente è ancora girato su hardware**: da qui in poi serve la board, e il
-prossimo passo (reference design, bitstream) è in carico a Dario perché richiede
-Vivado 2022.1.
+è costruito e verificato in simulazione; la PYNQ-Z1 è registrata in HDL Coder e il
+reference design che le sta attorno è scritto (Test 2).
 
-Tutto ciò che si poteva fare senza hardware è fatto.
+**Niente è ancora girato su hardware.** Da qui in poi serve Vivado 2022.1, che ha
+Dario: costruire il reference design e il bitstream. La parte scritta qui è
+verificata per quanto si può senza quel tool — e dove non si è potuto, è detto quale
+verifica manca.
 
 > ### ⚠ Otto domande in attesa
 > Il [contratto d'interfaccia](HDL_Test/Prova_2/docs/20_CONTRATTO_INTERFACCIA.md) §8
@@ -27,6 +28,11 @@ Tutto ciò che si poteva fare senza hardware è fatto.
 > formato numerico e sul payload. Le più urgenti: **cosa sono i due vettori 3×1** che
 > attraversano il confine, e **cos'altro lo attraverserà** (i dati grezzi di
 > radar/lidar restano sull'ARM?). La seconda decide la taglia del progetto.
+
+> ### ▶ Il prossimo passo, per chi ha Vivado 2022.1
+> Tre comandi in ordine, con un esito atteso ciascuno:
+> [`24_REFERENCE_DESIGN` §24.5](HDL_Test/Prova_2/docs/24_REFERENCE_DESIGN.md).
+> Il primo è `validate_refdesign()`, che deve rispondere `completa`.
 
 > ### ⚠ Una decisione da prendere: cosa gira sull'ARM
 > Bare-metal o Linux con registri mappati. Non è una scelta tecnica in senso
@@ -69,7 +75,7 @@ HDL_Test/
     docs/                     diagnosi, piano, procedura, note API, punti aperti
     scripts/                  tutto è generato da script
     models/                   soc_top · soc_fpga · soc_proc · soc_wrapper_fpga
-    hdlplugins/               board Digilent PYNQ-Z1 per HDL Coder
+    hdlplugins/               board PYNQ-Z1 + reference design per HDL Coder
 ```
 
 `Prova_1` e le cartelle `HDL_Test/vivado_synth*` sono **materiale storico**: si
@@ -110,8 +116,17 @@ dai **board file Vivado che il gruppo ha già installato**, e un gate li riconfr
 con quelli pin per pin.
 → [`23_BOARD_PYNQZ1`](HDL_Test/Prova_2/docs/23_BOARD_PYNQZ1.md)
 
-**14 gate di regressione, tutti provati anche in fallimento** — compresi il watchdog
-(fatto tacere di proposito), il contatore dei cicli e la mappatura dei pin.
+**Reference design scritto.** `hdlplugins/+PYNQZ1/+vivado_base_2022_1`: il sistema
+dentro cui HDL Coder innesta l'IP core — Processing System, bus AXI, clock, reset,
+device tree. Il PS **non** è trascritto a mano come nei reference design MathWorks
+(399 righe di parametri): si applica il preset dei vostri board file, e che
+funzioni è verificato — il design costruito riporta `MT41J256M16 RE-125`, il DDR3
+reale della PYNQ-Z1.
+→ [`24_REFERENCE_DESIGN`](HDL_Test/Prova_2/docs/24_REFERENCE_DESIGN.md)
+
+**15 gate di regressione, tutti provati anche in fallimento** — compresi il watchdog
+(fatto tacere di proposito), il contatore dei cicli, la mappatura dei pin e la
+coerenza fra i quattro file del reference design.
 
 ### Cosa NON è ancora dimostrato
 

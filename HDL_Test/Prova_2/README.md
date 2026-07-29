@@ -46,7 +46,8 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | P9 · wrapper: CSR, FSM start/done, watchdog, contatore | ✅ gate G9 (T12), 3 mutazioni catturate |
 | P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
 | P11 · board plugin PYNQ-Z1 | ✅ gate G11 (T14) → [`docs/23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) — resta una conferma manuale |
-| P12–P13 · reference design, bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
+| P12 · reference design | ✅ **scritto e verificato** → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) — da **costruire** con Vivado 2022.1 |
+| P13 · bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
 | P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
 
 ---
@@ -89,7 +90,9 @@ Per il deploy serve anche la board registrata in HDL Coder — una riga:
 
 ```matlab
 addpath('hdlplugins')      % rende visibile la Digilent PYNQ-Z1
-check_board_plugin();      % e verifica che i pin combacino coi board file Vivado
+check_board_plugin();      % i pin combaciano coi board file Vivado
+check_refdesign();         % i 4 file del reference design concordano
+validate_refdesign();      % costruisce il block design — serve Vivado 2022.1
 ```
 
 I modelli in `models/` (esclusi i `*_ref.slx`) sono **artefatti rigenerabili**:
@@ -130,7 +133,7 @@ S = latency_study();      % rifà lo studio: tabella overhead + tabella budget
 
 ## La suite di regressione
 
-Un comando, 14 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
+Un comando, 15 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 
 | Gate | Cosa verifica |
 |---|---|
@@ -144,6 +147,7 @@ Un comando, 14 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 | T12 | **G9**: invarianti del wrapper, `CYCLES` esatto, **watchdog** |
 | T13 | **G10**: l'overhead del wrapper è ancora 1 ciclo |
 | T14 | **G11**: plugin PYNQ-Z1 registrato, e i pin combaciano coi board file |
+| T15 | **G12a**: i quattro file del reference design dicono la stessa cosa |
 
 Mutazioni usate per validarli:
 
@@ -161,6 +165,11 @@ Mutazioni usate per validarli:
 | due pin LED invertiti | T14 |
 | `LVCMOS18` al posto di `LVCMOS33` | T14 |
 | riferimento di registrazione della board sbagliato | T14 |
+| clock a 50 MHz nel reference design invece di 100 | T15 |
+| nome della board diverso fra board plugin e reference design | T15 |
+| istanza rinominata nel `.tcl` ma non in `plugin_rd` | T15 |
+| board part maiuscolo (`PYNQ-Z1` invece di `pynq-z1`) | T15 |
+| `clock-div` del device tree incoerente col clock reale | T15 |
 
 ---
 
@@ -174,6 +183,7 @@ Mutazioni usate per validarli:
 | [`20_CONTRATTO_INTERFACCIA.md`](docs/20_CONTRATTO_INTERFACCIA.md) | il confine con il blocco di terzi — **8 domande aperte** |
 | [`22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) | **quanti cicli ha il blocco di calcolo**, e da cosa dipendono |
 | [`23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) | come la PYNQ-Z1 è stata registrata in HDL Coder |
+| [`24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) | il sistema attorno all'IP core — **per chi ha Vivado 2022.1** |
 | [`11_NOTE_API.md`](docs/11_NOTE_API.md) | diario delle scoperte: messaggi d'errore esatti, cause, soluzioni |
 
 **Il resto:**
@@ -204,12 +214,14 @@ scripts/
   run_system_sim.m         simulazione di sistema + confronto numerico
   run_regression.m         un comando → PASS/FAIL
   check_board_plugin.m     verifica il plugin board contro i board file Vivado
+  check_refdesign.m        verifica che i 4 file del reference design concordino
+  validate_refdesign.m     esegue il block design in Vivado (serve la 2022.1)
   export_r2023b.m          REGOLA R1
 models/                    soc_top · soc_fpga · soc_proc · soc_wrapper_fpga
                            + *_ref.slx (storici, read-only)
 test/                      vectors.mat (rigenerabile, non versionato)
-hdlplugins/                +PYNQZ1 (plugin board) + hdlcoder_board_customization.m
-                           il reference design manca ancora: e' P12, di Dario
+hdlplugins/                +PYNQZ1: plugin board + reference design AXI4-Lite
+                           (plugin_rd, system_top.tcl, axilite.dtsi)
 ps/                        (vuota) lato ARM
 vivado/                    (vuota) progetto e report, rigenerabili
 ```

@@ -53,10 +53,18 @@ proc board_set_board_info {} {
 }
 ```
 
-Serve come modello per il reference design (P12). Attenzione a un dettaglio:
-l'identificatore della PYNQ-Z1 è **`www.digilentinc.com:PYNQ-Z1:part0:1.0`** —
-con il `www.`, che la Zybo non ha. Sbagliarlo significa che Vivado non trova la
-board.
+Serve come modello per il reference design (P12). Attenzione a **due**
+dettagli nell'identificatore della PYNQ-Z1:
+
+```
+www.digilentinc.com:pynq-z1:part0:1.0
+```
+
+il prefisso `www.`, che la Zybo non ha, e il nome **in minuscolo** — `board.xml`
+dichiara `name="PYNQ-Z1"` ma Vivado registra `pynq-z1`. Verificato con
+`get_board_parts`: cercando `*PYNQ*` non trova nulla. Una prima stesura di
+questo documento riportava la forma maiuscola; il gate T15 ora deriva la
+stringa da `board.xml` e la confronta ([`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md) §24.3).
 
 ## 23.3 Il silicio
 

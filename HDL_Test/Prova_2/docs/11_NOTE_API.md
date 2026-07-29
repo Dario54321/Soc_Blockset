@@ -498,6 +498,35 @@ Due inciampi:
 
 ## 13. Altre note minori
 
+### Due trappole nel `regexp` di MATLAB, entrambe silenziose
+
+Scoperte scrivendo `check_refdesign` e `validate_refdesign`, e ciascuna è
+costata un risultato sbagliato prima di essere vista.
+
+**`\b` non è un word boundary.** In MATLAB non aggancia nulla — nemmeno
+`regexp('foo bar','\bbar','match')`, che restituisce vuoto. L'inizio-parola è
+`\<` (e la fine `\>`). Sintomo: un pattern che funziona ovunque altro qui non
+trova mai niente, e se il codice non asserisce il match, passa in silenzio.
+
+**Il punto matcha anche il newline.** `'^X: (.+)'` su un output multiriga si
+mangia le righe successive. L'opzione per escluderlo è `'dotexceptnewline'`;
+più chiaro scrivere direttamente `([^\r\n]+)`.
+
+Regola pratica che ne segue: **ogni estrazione con `regexp` va seguita da
+un'asserzione che ha agganciato qualcosa.** Un `tokens` vuoto restituito in
+silenzio trasforma un verificatore in un controllo che passa sempre.
+
+### Vivado in modo batch rieccheggia il proprio sorgente
+
+`vivado -mode batch -source x.tcl` stampa le righe dello script (prefissate da
+`# `) mescolate al loro output. Un parser non ancorato legge lo **script** invece
+del **risultato**: `puts "MARK: ok"` viene letto come se `MARK: ok` fosse stato
+prodotto, anche quando quel ramo non è mai stato eseguito. Ancorare a inizio
+riga (`'^MARK: '` con `'lineanchors'`). Costato una validazione dichiarata
+riuscita quando era fallita ([`24_REFERENCE_DESIGN` §24.6](24_REFERENCE_DESIGN.md)).
+
+
+
 - `sfroot.find(...)` senza parentesi è errore di sintassi in R2026a: serve `sfroot()`.
 - Il Model block si aggiunge da `simulink/Ports & Subsystems/Model` e poi
   `set_param(blk,'ModelNameDialog','nome.slx')`. Passare il percorso del `.slx` come

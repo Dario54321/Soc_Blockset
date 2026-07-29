@@ -221,8 +221,9 @@ tornerà allo stream.
    **850 cicli**, il 26 % del budget ([`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md)
    §22.4). Non è una decisione tecnica in senso stretto: dipende da cosa deve fare
    il PS oltre a questo anello. **Serve prima del reference design.**
-3. **A4 — board plugin PYNQ-Z1** (mezza giornata): toglie subito il dubbio più grosso
-   sulla fattibilità del deploy.
+3. ~~**A4 — board plugin PYNQ-Z1**~~ ✅ *(29/07)*, e con esso il reference design
+   ([`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md)): scritto e verificato per
+   quanto si può senza Vivado 2022.1.
 4. **Reference design** partendo da `+vivado_base_2022_1` (AXI4-Lite, più piccolo
    dello stream) → **Dario**, con Vivado 2022.1.
 5. **Bring-up**: `ID_VER` → registro R/W → un vettore noto → **la prima lettura di

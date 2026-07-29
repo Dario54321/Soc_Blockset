@@ -61,6 +61,9 @@ function ok = run_regression()
     % --------------------------------------------------------------- T14
     results(end+1,:) = runTest('T14 board plugin PYNQ-Z1 (G11)', @() check_board());
 
+    % --------------------------------------------------------------- T15
+    results(end+1,:) = runTest('T15 reference design coerente (G12a)', @() check_rd());
+
     % ------------------------------------------------------------ report
     fprintf('-------------------------------------------\n');
     pass = all([results{:,2}]);
@@ -474,6 +477,23 @@ function check_board()
         fprintf(2, ['  [T14] ATTENZIONE: verificata solo la registrazione. ' ...
                     'I pin NON sono stati confrontati (board file assenti).\n']);
     end
+end
+
+
+% =====================================================================
+function check_rd()
+%CHECK_RD  Gate G12a — coerenza del reference design (docs\24_REFERENCE_DESIGN).
+%
+%   Verifica i quattro legami che i file del reference design hanno fra loro
+%   e che si rompono in silenzio: nome della board, board part di Vivado,
+%   frequenza di clock (compare in quattro file), nomi delle istanze.
+%
+%   NON costruisce il block design: serve Vivado 2022.1 o 2024.1, e far
+%   dipendere la regressione da un tool esterno la renderebbe diversa da
+%   macchina a macchina. Quella verifica sta in validate_refdesign, da
+%   lanciare a mano.
+
+    check_refdesign();
 end
 
 

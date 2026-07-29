@@ -1,0 +1,45 @@
+/*
+ * axilite.dtsi — nodi device tree del reference design PYNQ-Z1 (AXI4-Lite).
+ *
+ * Ricalcato su +ZedBoard/+vivado_base_2022_1/axilite.dtsi. I riferimenti
+ * &intc e &clkc NON sono specifici della ZedBoard: vengono da zynq-7000.dtsi
+ * ed esistono su qualunque Zynq-7000, questa inclusa.
+ *
+ * UNICA DIFFERENZA rispetto alla ZedBoard: clock-div.
+ *   clkc 15 e' FCLK_CLK0, che qui il reference design porta a 100 MHz.
+ *   Il clock del core esce dal clk_wiz anch'esso a 100 MHz -> divisore 1.
+ *   La ZedBoard usa 50 MHz sul core e quindi divisore 2.
+ * Se si cambia la frequenza nel Workflow Advisor, QUESTO VALORE VA RIFATTO:
+ * e' una descrizione, non una misura, e Linux ci crede. check_refdesign
+ * verifica che continui a corrispondere a soc_params.
+ */
+
+/* Bus AXI verso la PL e clock del core */
+/ {
+	fpga_axi: fpga-axi@0 {
+		compatible = "simple-bus";
+		interrupt-parent = <&intc>;
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+		ranges;
+	};
+	core_clkwiz: clockwiz0 {
+		compatible = "fixed-factor-clock";
+		clocks = <&clkc 15>;
+		#clock-cells = <1>;
+		clock-div = <1>;
+		clock-mult = <1>;
+		clock-output-names = "clk0";
+	};
+};
+
+/* Boot da ramdisk e console seriale */
+/ {
+	chosen {
+		bootargs = "earlycon root=/dev/ram rw";
+
+		/* stdout-path va ridefinito perche' la console sia raggiungibile */
+		/delete-property/ linux,stdout-path;
+		stdout-path = "serial0:115200n8";
+	};
+};

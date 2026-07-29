@@ -78,13 +78,32 @@ Trenz spedito nel prodotto. → [`23_BOARD_PYNQZ1`](23_BOARD_PYNQZ1.md).
 
 ## Blocco D — hardware *(richiede Vivado 2022.1 → Dario)*
 
-### P12 · Reference design
-Partire da `+ZedBoard/+vivado_base_2022_1` (AXI4-Lite: **più piccolo** di quello
-stream), cambiare `BoardName` e il board part usando i **board files Vivado che il
-gruppo già possiede**, e lasciare che `apply_boardpreset` riempia i `PCW_*` invece
-di trascriverli.
-- **Gate G12**: il reference design compare nel Workflow Advisor e il block design
-  si costruisce senza errori critici.
+### P12 · Reference design ✅ *scritto — da costruire con Vivado 2022.1*
+Scritto qui e verificato per quanto possibile senza il tool giusto:
+`hdlplugins/+PYNQZ1/+vivado_base_2022_1` (plugin_rd, system_top.tcl, axilite.dtsi).
+→ [`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md).
+- Il Processing System **non** è trascritto a mano: si applica il preset dei
+  board file della PYNQ-Z1. Verificato che funzioni — dopo l'automation il
+  design riporta `MT41J256M16 RE-125`, il DDR3 reale della board.
+- **Gate G12a** ✅ T15: i quattro file (plugin_rd, tcl, dtsi, registrazione) si
+  legano per nome e per numero; il gate verifica che dicano ancora la stessa
+  cosa. Sei mutazioni catturate.
+- **Gate G12b** ⬜ `validate_refdesign()` deve dare `completa`: su questa
+  macchina dà `parziale`, perché Vivado 2026.1 non ha più `axi_interconnect`.
+  **È il primo atto di chi ha la 2022.1.**
+
+### P12bis · Costruzione del reference design *(Dario, Vivado 2022.1)*
+Il design è scritto: qui si tratta di eseguirlo. Tre comandi, in ordine, con un
+esito atteso ciascuno — vedi [`24_REFERENCE_DESIGN` §24.5](24_REFERENCE_DESIGN.md).
+1. `validate_refdesign()` → deve dire `completa`;
+2. HDL Workflow Advisor su `soc_wrapper_fpga`: *Digilent PYNQ-Z1* fra le target
+   platform e *Default system (AXI4-Lite)* fra i reference design (chiude anche
+   G11b, la conferma manuale rimasta da P11);
+3. il block design si costruisce senza errori critici.
+- **Gate G12b**: i tre punti sopra.
+- Attesi e da non "correggere": due CRITICAL WARNING sul DDR
+  (`PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_2/3` negativi). Vengono dal `preset.xml`
+  dei board file Digilent, non da noi.
 - **Uscita datata**: se a 2 settimane non converge → ZedBoard, e la PYNQ-Z1 diventa
   una limitazione dichiarata nel report.
 
@@ -142,7 +161,8 @@ Tenere un ILA su FSM, handshake e un valore del datapath **già nella prima buil
 | G10 | numero di cicli disponibili, riproducibile | ✅ T13 |
 | G11 | plugin PYNQ-Z1: registrazione + pin verificati | ✅ T14 |
 | G11b | PYNQ-Z1 nel menu del Workflow Advisor | ⬜ conferma manuale |
-| G12 | reference design costruisce *(uscita datata: 2 settimane)* | ⬜ Dario |
+| G12a | i quattro file del reference design concordano | ✅ T15 |
+| G12b | il block design si costruisce e valida | ⬜ Dario (Vivado 2022.1) |
 | G13 | bitstream, slack positivo su design con registri | ⬜ Dario |
 | G15 | 100 % match on-board + prima lettura di `CYCLES` | ⬜ board |
 | G16 | tutto rigenerabile, costanti sostituite da misure | ⬜ |
