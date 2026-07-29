@@ -1,4 +1,23 @@
-# Specifica del test di interfacciamento — CONGELATA 28/07/2026
+# Test 1 — infrastruttura di interfacciamento · COMPLETATO E SUPERATO COME BERSAGLIO
+
+> **Stato: concluso con esito positivo, ma non è più il bersaglio del progetto.**
+>
+> Questo test ha dimostrato che la catena ARM → impacchettamento → AXI4-Stream → PL
+> → spacchettamento funziona ed è **bit-esatta** (errore 0). Ha prodotto la
+> struttura a tre modelli, le ricette di configurazione, la suite di gate e le note
+> API — tutto materiale che vale indipendentemente dal payload.
+>
+> Il bersaglio è cambiato dopo il riorientamento del perimetro
+> ([`01_PIANO.md` §1](01_PIANO.md)): payload reale di **due vettori 3×1**, calcolo
+> dentro un **blocco di terzi**, budget di **33 µs**, trasporto **AXI4-Lite**.
+>
+> **La specifica corrente è [`21_SPEC_WRAPPER.md`](21_SPEC_WRAPPER.md).**
+> Questo documento resta come registro di ciò che è stato fatto e verificato: non
+> va aggiornato, va letto come storia.
+
+---
+
+## Specifica del Test 1 — congelata 28/07/2026
 
 > Passo P1 della procedura. Da qui in avanti ogni modifica a questo documento
 > richiede una giustificazione scritta (regola R5). Il benchmark congelato è la

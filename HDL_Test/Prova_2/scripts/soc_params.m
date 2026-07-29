@@ -49,7 +49,13 @@ p.env.simBoard             = 'ZedBoard';
 %  Il file dell'MPC non e' ancora disponibile. Questi valori sono IPOTESI
 %  e il progetto e' parametrico su di essi proprio per questo.
 %  Quando l'MPC arriva, si cambiano qui e basta (regola R2).
-p.mpc.nx       = 3;        % dimensione dello stato trasferito ARM -> PL
+%  Osservato: attraversano il confine ARM->PL DUE vettori 3x1. Cosa siano
+%  non e' ancora noto (domanda 5 del contratto, docs/20_CONTRATTO_INTERFACCIA
+%  §8). Si modella come nVec vettori di vecLen elementi, cosi' "3 o 6?" non
+%  puo' piu' essere ambiguo: nx e' il TOTALE che attraversa.
+p.mpc.nVec     = 2;        % quanti vettori attraversano il confine
+p.mpc.vecLen   = 3;        % lunghezza di ciascun vettore
+p.mpc.nx       = p.mpc.nVec * p.mpc.vecLen;   % = 6 elementi totali ARM -> PL
 p.mpc.nu       = 1;        % dimensione del risultato PL -> ARM
 p.mpc.confirmed = false;   % <- diventa true quando l'MPC e' stato letto
 
@@ -203,34 +209,30 @@ p.timing.maxLatency = 1.0;                          % budget di latenza end-to-e
 p.regmap.baseAddress = '0x400D0000';     % come il reference design shipped
 p.regmap.idVerMagic  = uint32(hex2dec('50325A31'));   % "P2Z1"
 
-% --- registro del Register Channel di SoC Blockset -------------------
-% ATTENZIONE: e' cosa diversa dalla tabella p.regmap.reg qui sotto.
-%   * questo e' il registro modellato dal blocco Register Channel, usato in
-%     SIMULAZIONE per portare streamEnable dal processore alla PL;
-%   * p.regmap.reg e' la mappa AXI4-Lite dell'IP core che verra' GENERATO
-%     a P12 (CTRL/STATUS/CYCLES/ID_VER).
-% Il lato software NON collega un segnale grezzo al Register Channel: ci
-% scrive attraverso un blocco prociolib/Register Write, che e' cio' che
-% emette il messaggio atteso dal canale (vedi docs/11_NOTE_API).
-% --- mappa AXI4-Lite del wrapper (docs/20_CONTRATTO_INTERFACCIA.md §6) ---
-% DERIVATA da nx/nu: nessun offset si trascrive a mano, ne' in HDL ne' in C.
+% --- mappa AXI4-Lite del wrapper: UNICA fonte degli offset --------------
+% docs/20_CONTRATTO_INTERFACCIA.md §6. DERIVATA da nx/nu: nessun offset si
+% trascrive a mano, ne' in HDL ne' in C.
+%
+% Qui esisteva anche una seconda tabella (p.regmap.reg) scritta a mano, con
+% offset INCOMPATIBILI con questi (CYCLES a 0x44 invece che a 0x80). E'
+% stata rimossa: due mappe per la stessa cosa violano la regola R2 ed erano
+% gia' divergenti. Segnalata da un audit della documentazione.
 p.regmap.wrapper = build_wrapper_regmap(p.mpc.nx, p.mpc.nu, p.payload.dtStr);
 
+% --- registro del Register Channel di SoC Blockset ----------------------
+% Cosa diversa dalla mappa qui sopra: questo e' il registro MODELLATO dal
+% blocco Register Channel, usato in SIMULAZIONE per portare streamEnable dal
+% processore alla PL nel Test 1. La mappa del wrapper e' invece quella che
+% l'IP core esporra' davvero sull'AXI4-Lite.
+%
+% Il lato software NON collega un segnale grezzo al Register Channel: ci
+% scrive attraverso un blocco prociolib/Register Write, che e' cio' che
+% emette il messaggio atteso dal canale (docs/11_NOTE_API §3).
 p.regchan.name       = 'streamEnable';
 p.regchan.rw         = 'Write';
 p.regchan.dataType   = 'boolean';
 p.regchan.deviceName = '/dev/mwipcore';   % segnaposto: allineare all'IP core a P12
 p.regchan.offset     = 'hex2dec(''0100'')';
-p.regmap.reg = struct( ...
-    'name',   {'CTRL','STATUS','CYCLES','ITERS','ID_VER'}, ...
-    'offset', {  '0x00','0x04',  '0x44',  '0x48', '0x4C'}, ...
-    'access', {   'RW',   'R',     'R',     'R',    'R'}, ...
-    'type',   {'uint32','uint32','uint32','uint32','uint32'}, ...
-    'descr',  {'bit0 START(autoclear) bit1 SOFT_RESET bit2 IRQ_EN', ...
-               'bit0 DONE bit1 BUSY bit2 ERROR', ...
-               'cicli dell''ultimo solve', ...
-               'iterazioni eseguite', ...
-               'costante magica + versione'});
 
 %% ------------------------------------------------------------------
 %  Vettori di test
@@ -390,11 +392,6 @@ assert(abs(p.stream.frameSampleTime - p.timing.taskPeriod) < eps(p.timing.taskPe
     ['Tempo di frame lato PL (%g s) diverso dal periodo del task (%g s): ' ...
      'un frame per attivazione e'' l''ipotesi su cui poggia il dimensionamento.'], ...
     p.stream.frameSampleTime, p.timing.taskPeriod);
-
-% --- Register map: offset unici ---
-offs = {p.regmap.reg.offset};
-assert(numel(unique(offs)) == numel(offs), 'socParams:regmapDup', ...
-    'Offset duplicati nel register map: %s', strjoin(offs, ' '));
 
 % --- Register map del wrapper: offset unici e allineati a 4 byte ---
 w = p.regmap.wrapper;

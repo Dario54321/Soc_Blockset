@@ -343,7 +343,160 @@ gli avvisi e chiuderli, anche quelli innocui. Costa minuti una volta sola.
 
 ---
 
-## 11. Altre note minori
+## 11. MATLAB Function con `persistent`: tre trappole in fila
+
+Costruendo il wrapper (`build_wrapper_fpga.m`) ne abbiamo incontrate tre di
+seguito. Sono tutte e tre invisibili leggendo il codice: si manifestano solo
+compilando.
+
+### 11.1 Anello algebrico con `persistent`: la soluzione è documentata
+
+> *"'…/wrapper_fsm' or the model referenced by it contains a block that updates
+> persistent or state variables while computing outputs and is not supported in an
+> algebraic loop."*
+
+Di default una MATLAB Function è **direct feedthrough su tutti gli ingressi**:
+scrivere il codice "alla Moore" non basta, perché Simulink non lo deduce dal
+codice. Ma la soluzione **non** è aggiungere un ritardo a mano — è disattivare il
+direct feedthrough sul blocco che deve rompere l'anello:
+
+```matlab
+cfg = get_param(blk, 'MATLABFunctionConfiguration');
+cfg.AllowDirectFeedthrough = 0;
+```
+
+> *"When Allow direct feedthrough is cleared, the output of the block depends on
+> the internal state and properties and does not depend on the input."*
+> — [Using Persistent Variables and fi Objects Inside MATLAB Function Blocks for HDL Code Generation](https://www.mathworks.com/help/hdlcoder/ug/using-persistent-variables-inside-matlab-function-blocks-for-hdl-code-generation.html)
+
+**In cambio il codice deve rispettare una regola**: *"You must read the persistent
+variable's value BEFORE updating it."* Le uscite si calcolano in cima, dallo stato;
+gli aggiornamenti stanno tutti dopo. Violarla non dà errore: dà risultati sbagliati.
+
+**Due vincoli scoperti applicandola:**
+
+1. **Nessuna** uscita può dipendere da un ingresso — non basta che *quella* uscita
+   non ci dipenda. Con un `u_raw = x(1:nu)` accanto a `done_o`:
+   > *"Stateflow:cdr:CannotDisallowDirectFeedthrough — Property 'Allow direct
+   > feedthrough' is not supported for MATLAB Function '…', but Simulink is not
+   > able to enforce this constraint."*
+
+   Nel wrapper il percorso dati è stato tolto dal segnaposto: un blocco `Selector`
+   prende `x(1:nu)` e lo porta al latch. Il segnaposto è così solo *un ritardo con
+   handshake*, che è anche ciò che deve essere.
+
+2. Va applicato **solo** al blocco che deve rompere l'anello. `wrapper_fsm` resta
+   direct feedthrough, perché `start_o` dipende davvero da `start_cmd` nello stesso
+   ciclo.
+
+> **Errore commesso e corretto.** In una prima versione avevamo concluso che
+> «serve un ritardo esplicito» e messo un `Unit Delay`. Funzionava, ma era un
+> rimedio a un problema con una soluzione di prima classe, e generava HDL
+> peggiore. Trovato leggendo la documentazione invece di continuare per
+> tentativi.
+
+Dalla stessa pagina, utile per la generazione HDL: usare `hdlfimath` invece del
+`fimath` di default, perché *"avoids the additional resource usage and saves area
+on the target FPGA device"* (arrotondamento Floor e overflow Wrap invece di
+Saturate).
+
+### 11.2 `zeros(N,1,'like',x(1))` non si compila
+
+> *"Errors occurred during parsing of '…/compute_stub'."* — messaggio generico,
+> nessun dettaglio.
+
+Isolato costruendo un modello minimo con il solo blocco: la causa è
+**l'espressione indicizzata dentro `'like'`**.
+
+| forma | esito |
+|---|---|
+| `zeros(N,1,'like',x(1))` | ❌ errore di parsing |
+| `zeros(N,1,'like',x)` | ✅ parsa |
+| `zeros(N,1)` | ✅ parsa |
+
+In MATLAB puro `zeros(N,1,'like',x(1))` è valido e `checkcode` non segnala nulla:
+è una restrizione del contesto MATLAB Function.
+
+**Come l'abbiamo aggirata, ed è la soluzione migliore comunque**: niente
+`persistent` in virgola fissa. Il segnaposto produce `u_raw = x(1:nu)` — tipo e
+dimensione derivati dall'ingresso — e **il latch appartiene al wrapper**
+(`Switch` + `Unit Delay`), che è anche ciò che dice la specifica. Il latch resta
+visibile nel modello invece che sepolto nel codice.
+
+### 11.3 L'inferenza dei tipi non si chiude attorno a un anello
+
+> *"Output 'done_o' is a signal of data type 'boolean'. However, it is driving a
+> signal of data type 'double'."*
+
+Con un anello `fsm → stub → fsm`, l'inferenza dei tipi diventa circolare e
+Simulink degrada un segnale a `double`.
+
+**Rimedio**: dichiarare i tipi delle porte invece di lasciarli inferire. Via API,
+sui dati della chart:
+
+```matlab
+ch  = sfroot().find('-isa','Stateflow.EMChart','Path',[mdl '/wrapper_fsm']);
+all = ch.find('-isa','Stateflow.Data');
+d   = all(arrayfun(@(z) strcmp(z.Name,'done_i'), all));
+d.DataType = 'boolean';
+d.Props.Array.Size = '3';     % solo per i vettori
+```
+
+È comunque la scelta giusta: sono le porte di un'interfaccia, non un dettaglio
+interno.
+
+---
+
+## 12. Verificare il tempo: simulare il modello, non emularlo
+
+Il banco di prova del wrapper estraeva le MATLAB Function dal modello e le faceva
+girare in un anello MATLAB. Va bene per la logica, **non per le misure di tempo**.
+
+Simulink separa la fase *uscite* dalla fase *aggiornamento di stato*; una funzione
+MATLAB fa entrambe in una chiamata atomica. In un anello a due blocchi l'emulazione
+introduce quindi **un ciclo in più**, ovunque si metta la chiamata, e non è
+aggirabile riordinando. Misurato: emulazione 502 cicli, modello 501.
+
+Adattare l'atteso a 502 avrebbe reso verde la suite nascondendo il problema, **e
+avrebbe fatto passare indisturbata la mutazione che sfasa il contatore di uno**.
+
+**Come si pilota un modello da script**, senza Simulink Test:
+
+```matlab
+ds = createInputDataset(mdl);          % dataset GIA' coi tipi giusti delle porte
+for k = 1:ds.numElements
+    e = ds{k};                          % NB: e' un timeseries, non ha campo .Values
+    proto = e.Data(1);                  % il tipo della porta sta in .Data
+    ds{k} = timeseries(cast(v,'like',proto), t, 'Name', e.Name);
+end
+in  = Simulink.SimulationInput(mdl);
+in  = in.setExternalInput(ds);
+in  = in.setModelParameter('SaveOutput','on','OutputSaveName','yout', ...
+                           'SaveFormat','Dataset');
+out = sim(in);
+```
+
+[createInputDataset](https://www.mathworks.com/help/simulink/slref/createinputdataset.html)
+risolve il problema dei tipi: genera il dataset con il tipo compilato di ciascuna
+porta, virgola fissa inclusa.
+
+Due inciampi:
+
+- **Gli elementi di `yout` non portano il nome del blocco Outport.**
+  `y.get('done')` avvisa *"Did not find any Dataset element using 'done'"* e
+  restituisce vuoto. Si accede per **indice**, che corrisponde al numero di porta.
+- **Costruire una variante del modello con lo STESSO NOME** in una cartella
+  temporanea la rende inutilizzabile:
+  > *"The file containing block diagram '…' is shadowed by a file of the same name
+  > higher on the MATLAB path."*
+
+  Simulink carica quello sul path, non quello che credi. Il gate passa **per il
+  motivo sbagliato, in silenzio**. Rimedio: il builder deriva il nome del modello
+  dal nome del file, così la variante muta si chiama diversamente.
+
+---
+
+## 13. Altre note minori
 
 - `sfroot.find(...)` senza parentesi è errore di sintassi in R2026a: serve `sfroot()`.
 - Il Model block si aggiunge da `simulink/Ports & Subsystems/Model` e poi

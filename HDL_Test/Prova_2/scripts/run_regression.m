@@ -52,6 +52,9 @@ function ok = run_regression()
     % ~2 minuti: e' l'unico gate che simula davvero il sistema completo.
     results(end+1,:) = runTest('T11 catena end-to-end bit-esatta (G7)', @() check_end_to_end());
 
+    % --------------------------------------------------------------- T12
+    results(end+1,:) = runTest('T12 wrapper AXI4-Lite: invarianti (G9)', @() check_wrapper());
+
     % ------------------------------------------------------------ report
     fprintf('-------------------------------------------\n');
     pass = all([results{:,2}]);
@@ -430,6 +433,24 @@ function check_end_to_end()
     assert(R.errA == 0, 'matA dalla PL differisce dal reference (errore max %g)', R.errA);
     assert(R.errB == 0, 'matB dalla PL differisce dal reference (errore max %g)', R.errB);
     assert(R.errP == 0, 'sonda dalla PL differisce dal reference (errore max %g)', R.errP);
+end
+
+
+function check_wrapper()
+%CHECK_WRAPPER  Gate G9 — il wrapper AXI4-Lite (Test 2).
+%
+%   Copre i criteri B1-B4 e gli invarianti I2-I7 di docs/21_SPEC_WRAPPER.md:
+%   il modello compila (niente anello algebrico, tipi giusti), un solve
+%   nominale produce il dato atteso, CYCLES e' esatto, due solve consecutivi
+%   funzionano entrambi, e con il blocco muto scatta il watchdog.
+%
+%   Quest'ultimo e' l'unico gate che protegge dallo stallo dell'ARM, ed e'
+%   provato facendo tacere il blocco di proposito.
+
+    here = fileparts(mfilename('fullpath'));
+    f = fullfile(fileparts(here), 'models', 'soc_wrapper_fpga.slx');
+    assert(isfile(f), 'soc_wrapper_fpga.slx assente: eseguire build_wrapper_fpga.');
+    run_wrapper_unit_sim();     % contiene le proprie assert, parlanti
 end
 
 

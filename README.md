@@ -5,9 +5,23 @@ Progetto di co-design HW/SW su **Zynq-7000 (PYNQ-Z1, `xc7z020-clg400-1`)**.
 **Obiettivo finale**: accelerare un controllore MPC sulla logica programmabile,
 lasciando all'ARM la parte di supervisione e I/O.
 
-**Stato attuale**: si sta costruendo e verificando l'**infrastruttura di
-interfacciamento** fra ARM (PS) e FPGA (PL) con MATLAB SoC Blockset. L'MPC non è
-ancora in gioco: viene innestato su questa infrastruttura quando sarà solida.
+**Perimetro di questo lavoro**: costruire il **trasporto** fra l'ARM e un blocco di
+calcolo FPGA, dentro un budget d'anello di **33 µs**. Il calcolo dell'MPC
+(inversione 3×3 e altro) è dentro un blocco di **un altro ingegnere** e non è nel
+nostro perimetro: il nostro deliverable è
+**[un contratto d'interfaccia](HDL_Test/Prova_2/docs/20_CONTRATTO_INTERFACCIA.md)
+più il suo wrapper**.
+
+**Stato**: l'infrastruttura simula ed è verificata bit-esatta (Test 1, concluso).
+In corso la ricostruzione su AXI4-Lite (Test 2), che è il trasporto corretto per il
+payload e il budget reali. Niente è ancora girato su hardware.
+
+> ### ⚠ Otto domande in attesa
+> Il [contratto d'interfaccia](HDL_Test/Prova_2/docs/20_CONTRATTO_INTERFACCIA.md) §8
+> elenca otto domande che servono per chiudere la bozza — sul protocollo, sul
+> formato numerico e sul payload. Le più urgenti: **cosa sono i due vettori 3×1** che
+> attraversano il confine, e **cos'altro lo attraverserà** (i dati grezzi di
+> radar/lidar restano sull'ARM?). La seconda decide la taglia del progetto.
 
 ---
 
@@ -52,30 +66,37 @@ più. Il lavoro attivo è in `HDL_Test/Prova_2`.
 
 ## Cosa è stato dimostrato finora
 
-La catena completa **simula ed è numericamente corretta**:
+**Test 1 — infrastruttura.** La catena completa simula ed è numericamente corretta:
 
 ```
-ARM: calcola A·B (3×3) e C·D (4×4)
-  → impacchetta in 25 elementi sfix32_En16
-  → reinterpreta a uint32 (Stored Integer: stessi bit)
-  → Stream Write
-     → Software to AXI4-Stream (PS memory, 8 buffer, 100 MHz, 32 bit)
-        → PL: reinterpreta a sfix32_En16
-           → spacchetta in matA (3×3) e matB (4×4)
-           → sonda aritmetica: fixdt(1,16,3) × 3.7
+ARM: calcola due matrici  → impacchetta in 25 elementi sfix32_En16
+   → reinterpreta a uint32 (Stored Integer: stessi bit)  → Stream Write
+      → Software to AXI4-Stream (PS memory, 8 buffer, 100 MHz, 32 bit)
+         → PL: reinterpreta  → spacchetta  → sonda aritmetica in virgola fissa
 ```
 
-Verifica end-to-end contro il modello di riferimento: **errore 0** su `matA`, `matB`
-e sonda. Undici gate di regressione, tutti provati anche in fallimento.
+Verifica end-to-end contro il modello di riferimento: **errore 0**. Undici gate di
+regressione, tutti provati anche in fallimento.
+
+Ha prodotto ciò che serve indipendentemente dal payload: struttura a tre modelli,
+ricette di configurazione, suite di gate, note API sul toolchain.
 
 ### Cosa NON è ancora dimostrato
 
-- Niente è mai girato su hardware reale.
-- Il modello FPGA **non è ancora generabile in HDL**: riceve `tdata` come vettore di
-  25 elementi, che in hardware non è sintetizzabile
-  ([A1](HDL_Test/Prova_2/docs/13_APERTI.md)).
-- Handshake e priming del canale sono ancora segnaposto: **qualunque misura di
+- **Niente è mai girato su hardware reale.**
+- I 33 µs vengono da un paper, **non sono stati misurati da noi**.
+- La latenza del blocco di calcolo di terzi è **ignota**: si misurerà con il
+  registro `CYCLES` del wrapper, senza toccare il loro codice.
+- Handshake e priming del canale del Test 1 sono segnaposto: **qualunque misura di
   throughput o latenza fatta adesso sarebbe falsa**.
+
+### Perché il Test 1 non è il bersaglio finale
+
+Il payload reale sono **due vettori 3×1** (~28 byte), non 25 elementi, e il budget è
+33 µs. A quella taglia il DMA lascia **100 cicli** al calcolo contro i **3150** dei
+registri: il trasporto corretto è **AXI4-Lite**. Il percorso AXI4-Stream costruito
+nel Test 1 non è sprecato — resta come seconda implementazione della stessa
+interfaccia, e torna in gioco oltre i ~10–12 elementi.
 
 ---
 

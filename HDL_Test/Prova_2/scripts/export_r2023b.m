@@ -22,6 +22,11 @@ function export_r2023b(modelDir)
     assert(isfolder(modelDir), 'export_r2023b:noDir', ...
         'Cartella modelli inesistente: %s', modelDir);
 
+    % I modelli referenziati vanno risolti, altrimenti esportando il top
+    % Simulink avvisa "Unable to find model '...' referenced by ..." e si
+    % esporta un modello con riferimenti non risolti.
+    addpath(modelDir);
+
     files = dir(fullfile(modelDir, '*.slx'));
     if isempty(files)
         fprintf('Nessun .slx in %s — niente da fare.\n', modelDir);
