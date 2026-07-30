@@ -52,6 +52,19 @@ Tre scelte attraversano tutto il progetto e conviene averle presenti leggendo:
 I due filoni non si contraddicono: dove si sono sovrapposti sono arrivati alla
 stessa conclusione per strade indipendenti.
 
+**Coda al filone A**: il filone A si era fermato prima di un bitstream reale
+(bloccato su `IPCoreVersion`, canale AXI4-Stream). Un esempio didattico
+ricostruito da zero in `prove_2/` (tre modelli separati, canale **Register
+Channel/AXI4-Lite** invece di AXI4-Stream, matrici 3x3 con moltiplicazione
+vera) è arrivato dove il filone A non era arrivato: **un bitstream reale
+completo**, via `socModelBuilder`/SoC Builder — vedi
+[`docs/socbuilder_notes.md`](docs/socbuilder_notes.md) (sezione "ripreso da
+zero con Register Channel") e [`docs/hdl_findings.md`](docs/hdl_findings.md)
+(Risultato 4) per numeri e metodo. Board usata: ZedBoard (`clg484`, non ancora
+`clg400` Pynq-Z1 reale — SoC Builder supporta nativamente solo ZedBoard tra le
+board disponibili per questo meccanismo). Nessun deployment su hardware reale
+ancora fatto.
+
 ---
 
 ## Come navigare
@@ -74,6 +87,11 @@ Prova_1.slx               modello didattico, funzionante in simulazione
 Prova_1.slx.original      versione precedente, conservata
 FPGA_TEST.slx             subsystem FPGA isolato per la codegen HDL
 docs/                     filone A: misure hardware, note SoC Builder, guida Vivado
+
+prove_2/                  esempio da zero (Register Channel): primo bitstream reale
+  MatMul_Processor.slx    lato software (ARM), genera A/B
+  MatMul_FPGA.slx         lato FPGA, moltiplicazione matriciale 3x3 vera
+  MatMul_Top.slx          Top: Register Channel + Register Write/Read, collega i due
 
 HDL_Test/
   FPGA_Prova1.slx                  varianti FPGA-only del modello didattico

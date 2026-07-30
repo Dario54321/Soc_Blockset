@@ -66,3 +66,26 @@ DSP:        0 / 220
 **Zero risorse**, coerente con il Risultato 1: questo pezzo del modello non fa aritmetica, solo reshape/ricomposizione dello stream (la moltiplicazione vera è lato software/ARM in questo modello didattico). Ogni percorso nel report timing (es. `readFromMem[0][0]→matA[0,0][0]`, `streamEnable→doneOut1/doneOut2`) mostra **0 logic levels, 0.973 ns** di puro routing — stesso valore già misurato per il passthrough enable→done, confermato come riferimento stabile per questo tipo di percorso (buffer I/O, non un vero calcolo).
 
 **Perché conta**: dimostra che il flusso completo — dal modello Simulink SoC Blockset, attraverso le regole di IP Core Generation scoperte oggi, fino a un vero report di sintesi Vivado — funziona end-to-end su questa installazione, senza dipendere dal validatore p-code di `socModelBuilder`. Metodo riusabile quando si sintetizzerà il vero algoritmo MPC.
+
+## Risultato 4 — Moltiplicazione matriciale 3x3 vera, bitstream completo via SoC Builder (`MatMul_Top`/Register Channel)
+
+Diversamente dai Risultati 1-3 (reshape/routing puro, nessun calcolo reale sull'FPGA), questo test costruisce da zero un modello con **calcolo vero sulla FPGA**: due matrici 3x3 (`fixdt(1,16,8)`) entrano via Register Channel/AXI4-Lite, la moltiplicazione matriciale vera (`Y = A*B`, blocco `Product` in modalità `Matrix(*)`) avviene sul DUT, il risultato torna al software ARM. Metodo e regole scoperte in dettaglio: `docs/socbuilder_notes.md`, sezione "ripreso da zero con Register Channel".
+
+**Standalone (solo il DUT, HDL Workflow Advisor diretto su `MatMul_FPGA.slx`, package `clg400` — Pynq-Z1 reale)**:
+```
+Slice LUTs: 0 / 53200
+Slice Registers: 0 / 106400
+DSPs: 27 / 220 (12.27%)
+Data Path Delay: 9.268 ns (requirement 10 ns @ 100MHz — rispettato)
+```
+27 = 3 prodotti scalari per elemento di `Y` × 9 elementi, ciascuno mappato su un DSP48E1 (3 DSP incatenati via `PCIN+A*B` per prodotto scalare, accumulo combinatorio, nessun registro di pipeline).
+
+**Sistema completo (`socModelBuilder`/SoC Builder, PS7 Zynq + AXI4-Lite + DUT, package `clg484` — ZedBoard, unica board supportata da questo meccanismo)**, bitstream reale generato (`write_bitstream`, ~957 KB, 0 errori):
+```
+Slice LUTs: 1375 / 53200 (2.58%)
+Slice Registers: 1875 / 106400 (1.76%)
+DSPs: 27 / 220 (12.27%)
+```
+I 27 DSP coincidono esattamente col conteggio standalone — l'integrazione nel sistema completo (Register Channel, wrapper AXI4-Lite, PS7) non altera né duplica la logica di calcolo, aggiunge solo l'infrastruttura di trasporto (i ~1375 LUT/1875 registri extra rispetto allo standalone).
+
+**Perché conta**: primo bitstream reale di tutta la storia di questo progetto (sessione attuale e storico `Prova_1`/`Prova_2`) con un calcolo effettivo sulla FPGA, non solo trasporto/reshape — e primo numero di riferimento diretto per il costo di una vera moltiplicazione matriciale 3x3 in hardware, utile per dimensionare l'MPC (una matrice N×N×N costa circa N³ DSP con questo pattern non ottimizzato).
