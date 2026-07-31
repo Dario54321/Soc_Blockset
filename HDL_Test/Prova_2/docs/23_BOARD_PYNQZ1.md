@@ -197,6 +197,13 @@ Resta quindi una **conferma manuale da fare una volta**:
 2. aprire l'HDL Workflow Advisor su un modello con DUT
 3. verificare che *Digilent PYNQ-Z1* compaia fra le target platform
 
+**Fatto, 31/07/2026**: confermato sia in GUI (Dario) sia indirettamente da
+script (`hdlcoder.runWorkflow` porta a termine l'intero workflow con
+`TargetPlatform: Digilent PYNQ-Z1` nel report generato) — vedi
+[`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md). L'assenza di un'API per
+**elencare** le board resta vera: quanto sopra usa la board per nome, senza
+poter chiedere al prodotto l'elenco completo di quelle registrate.
+
 > Attenzione a una trappola metodologica: avevo costruito una prova che
 > sembrava funzionare in entrambe le direzioni — accettava la nostra board e
 > rifiutava una inesistente. Entrambi i rami fallivano con lo **stesso** errore

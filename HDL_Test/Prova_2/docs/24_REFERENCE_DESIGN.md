@@ -2,7 +2,7 @@
 
 > Passo P12, **scritto qui, da costruire da chi ha Vivado 2022.1**.
 > Verificabile con `check_refdesign` (coerenza) e `validate_refdesign` (Vivado).
-> Ultima esecuzione: 2026-07-29.
+> Ultima esecuzione: 2026-07-31 — primo IP core reale generato (§24.8).
 
 ## 24.1 Che cos'è
 
@@ -150,10 +150,31 @@ validazione del design.
 
 1. ~~`addpath('<...>\HDL_Test\Prova_2\hdlplugins')`~~ ✅
 2. ~~`validate_refdesign()` → deve dare `completa`~~ ✅ **31/07, G12b chiuso**
-3. ⬅ **SI RIPARTE DA QUI.** Aprire l'HDL Workflow Advisor su `soc_wrapper_fpga`:
-   *Digilent PYNQ-Z1* fra le target platform, *Default system (AXI4-Lite)* fra i
-   reference design (è il gate G11b, la conferma manuale rimasta da P11)
-4. Generare l'IP core e costruire il bitstream su `clg400` vero (P13)
+3. ~~Aprire l'HDL Workflow Advisor su `soc_wrapper_fpga`: *Digilent PYNQ-Z1* fra
+   le target platform, *Default system (AXI4-Lite)* fra i reference design~~ —
+   **il caricamento del reference design ora funziona anche via script su
+   R2023b** (`hdlcoder.runWorkflow`), vedi §24.8. Restava un vero bug di
+   `plugin_rd.m` (API di R2026a assenti su R2023b), non solo una conferma da
+   fare a mano — quel bug avrebbe molto probabilmente bloccato anche
+   l'apertura da GUI su questa installazione.
+4. ~~*Set Interfaces*: mappare gli outport del DUT ai registri AXI4-Lite
+   dichiarati in `plugin_rd.m`~~ ✅ **31/07, fatto in due modi indipendenti**:
+   da Dario in GUI (HDL Workflow Advisor), e da script con
+   `downstream.DownstreamIntegrationDriver.setTargetInterface` — 13 porte
+   assegnate ad `AXI4-Lite` in entrambi i casi, indirizzi auto-generati
+   `0x100`–`0x130` (vedi §24.8 per l'anomalia sull'ordine di `x0`/`x1`/`x2`,
+   confermata dal report reale, e per come si è scoperto che il passo è
+   scriptabile e non solo GUI-only).
+5. ~~Generare l'IP core~~ ✅ **31/07 — primo successo reale su questo
+   progetto, ottenuto in due modi indipendenti che si confermano a vicenda**:
+   a mano in GUI da Dario, e da script con
+   [`run_ipcore_generation.m`](../scripts/run_ipcore_generation.m) — stesso
+   esito: HDL Coder 23.2, VHDL, `Digilent PYNQ-Z1`, `xc7z020clg400-1`,
+   100 MHz, workflow *IP Core Generation*, `soc_wrapp_ip` v1.0. Report
+   completo in §24.8.
+6. ⬅ **SI RIPARTE DA QUI.** Costruire il bitstream (fase "4. Embedded System
+   Integration" nel Workflow Advisor, P13) — non ancora tentato, né in GUI né
+   da script.
 
 Punti su cui aspettarsi attrito, tutti già noti e nessuno verificato da noi:
 
@@ -324,3 +345,195 @@ e valida**. Log e dettagli in §24.6bis.
 
 Resta aperto il punto 2 di P12bis: la conferma manuale che *Digilent PYNQ-Z1*
 compaia nel menu del Workflow Advisor (gate G11b).
+
+## 24.8 — Dai punti 3-4 di §24.5 al primo IP core reale, da script e da GUI (Dario, 31/07/2026)
+
+Tentando di scriptare i punti 3-4 di §24.5 con `hdlcoder.WorkflowConfig` +
+`hdlcoder.runWorkflow` (per evitare l'interazione GUI dove possibile), sono
+emersi tre problemi distinti, ciascuno verificato leggendo il codice reale
+installato — non per tentativi sui nomi dei parametri.
+
+### `hdlcoder.WorkflowConfig`: il costruttore accetta solo due proprietà
+
+`help hdlcoder.WorkflowConfig` mostra un elenco di proprietà (`ProjectFolder`,
+`RunTaskGenerateRTLCodeAndIPCore`, `RunTaskBuildFPGABitstream`, ...) che sembra
+passabile al costruttore. **Non lo è.** Il sorgente reale
+(`toolbox\hdlcoder\hdlcommon\+hdlcoder\WorkflowConfig.m`) dichiara esplicitamente
+che il costruttore accetta solo `'SynthesisTool'` e `'TargetWorkflow'`; è un
+thin wrapper su `hwcli.WorkflowConfig(varargin{:})`. L'oggetto restituito è di
+classe `hwcli.config.IPCoreConfig` (verificato con `class()`): tutte le altre
+proprietà esistono davvero (verificato con `properties()`/`metaclass()`) ma
+vanno assegnate **dopo**, per notazione punto (`cfg.RunTaskCreateProject =
+false`), non come coppie nome-valore del costruttore.
+
+Serve anche allineare il modello: `hdlset_param(mdl,'Workflow','IP Core
+Generation')`, altrimenti `hdlcoder:workflow:ModelWorkflowMismatchConfig`.
+
+### `plugin_rd.m` chiama due metodi che su R2023b non esistono
+
+Lanciando `hdlcoder.runWorkflow` sul vero `soc_wrapper_fpga.slx`, il plugin
+`PYNQZ1.vivado_base_2022_1.plugin_rd` viene scartato con *"Unrecognized method,
+property, or field 'addRegisterInterface' for class
+'hdlturnkey.plugin.ReferenceDesignVivado'"*. Verificato con
+`methods(hdlcoder.ReferenceDesign('SynthesisTool','Xilinx Vivado'))` su questa
+installazione R2023b: **`addRegisterInterface` non esiste**, e nemmeno
+`addFPGADataCaptureInterface` (usato più sotto nello stesso file). Il commento
+originale a riga 22-24 del file lo conferma: *"Queste sono le versioni
+supportate da HDL Coder R2026a"* — il plugin è stato scritto e verificato
+contro l'API di R2026a, non R2023b. Su questa macchina è installato solo
+R2023b.
+
+Questo non è "serve la GUI": è un plugin che su questa release **non si carica
+proprio**, il che avrebbe molto probabilmente impedito anche alla GUI di
+mostrare *Digilent PYNQ-Z1* / *Default system (AXI4-Lite)* come opzioni, dato
+che il reference design viene scartato come invalido prima di qualunque
+interazione utente.
+
+**Fix verificato, applicato al file reale:**
+
+- `addRegisterInterface(...)` → `addAXI4SlaveInterface(...)`, con
+  `'MasterAddressSpace'` al posto di `'ManagerAddressSpace'`. Non è una
+  supposizione: l'esempio ufficiale in
+  `toolbox\hdlcoder\hdlcommon\+hdlcoder\ReferenceDesign.m` usa esattamente
+  questa firma. `HasProcessorConnection` e `DeviceTreeBusNode` non compaiono
+  in quell'esempio (il metodo è un builtin p-coded, "undocumented", senza
+  `help` consultabile) ma sono stati accettati senza errore in esecuzione
+  reale.
+- `addFPGADataCaptureInterface(...)` commentato, non riscritto: non è un
+  rinomino, è una funzionalità assente da tutto il toolbox `hdlcoder` di
+  R2023b (nessuna occorrenza di "DataCapture", nessun metodo simile in
+  `methods()`). Per commento originale di Carmine "non serve al
+  funzionamento" — da confermare con lui se serve un'alternativa (es. ILA
+  manuale nel block design Vivado) o se questa capability resta riservata a
+  R2026a.
+
+Risultato dopo il fix: il reference design si carica, nessun warning "Invalid
+plugin", e `hdlcoder.runWorkflow` procede fino alla compilazione HDL vera del
+modello.
+
+**Attenzione per chi lavora anche su R2026a**: `addRegisterInterface` lì
+esisteva (è per cosa il file era scritto). Se questo plugin deve tornare a
+girare anche su R2026a, va verificato che `addAXI4SlaveInterface` esista
+ancora in quella release con lo stesso significato prima di assumere che la
+patch sia valida ovunque.
+
+### Il passo "Set Interfaces": prima conclusione sbagliata, poi corretta
+
+Dopo i due fix sopra, `hdlcoder.runWorkflow` arriva più avanti e si ferma con
+*"At least one subsystem outport need to be assigned with Interface"*
+(`hdlcommon:workflow:NoInterfaceAssigned`) — serve mappare ogni outport del DUT
+al registro AXI4-Lite corrispondente.
+
+Prima ricerca: nessun riscontro nei cataloghi messaggi, nessun metodo
+pertinente in `hdlcoder.Board`/`hdlcoder.ReferenceDesign`, nessuna chiave
+rilevante negli schema JSON della Workflow Advisor app
+(`hdlcoder_apps\hdlconfig_app\schemas\params\ports.json` copre solo opzioni di
+I/O bit-width). Il sorgente del toolstrip
+(`toolbox\hdlcoder\toolstrip\mfiles\hdlToolStrip.m`) mostrava solo un oggetto
+interno (`hDI.hTurnkey.hTable`, con `savePortInterfaceToModel`) raggiungibile
+dalla catena di callback GUI. Su questa base la prima stesura di questo
+paragrafo concludeva **"è genuinamente GUI-only"**. **Era sbagliato — vedi
+sotto.** È la stessa lezione di §24.3 sull'`axi_interconnect`: una ricerca
+onesta ma non ancora sufficientemente a fondo può comunque produrre una
+conclusione falsa.
+
+**Correzione (stesso giorno, dopo che Dario aveva già completato il passo a
+mano in GUI — vedi sottosezione successiva):** esiste un'API pubblica, non
+ristretta, che fa esattamente questo:
+`downstream.DownstreamIntegrationDriver`, ottenibile con
+`hDI = downstream.DownstreamIntegrationDriver(mdl)` seguito da
+`hDI.loadTopLevelSettings(); hDI.loadModelSettings();` (questi due leggono la
+configurazione già scritta sul modello via `hdlset_param` — non serve
+richiamare `loadTool`/`setBoardName`/`setReferenceDesign`, che sono invece
+`MethodRestricted`, verificato con l'identifier esatto
+`MATLAB:class:MethodRestricted`, quindi quelli sì non richiamabili da fuori).
+Poi:
+
+```matlab
+hDI.setTargetInterface('start_cmd', 'AXI4-Lite');   % e così per ogni porta
+```
+
+Le scelte valide non erano da indovinare: **il messaggio d'errore stesso le
+elenca** quando si passa un valore non valido — `getTargetInterface`/
+`setTargetInterface` sono un'API di sola lettura/scrittura per porta, senza
+bisogno della classe `hdlturnkey.table.TargetInterfaceTable` (che esiste ma
+richiede uno stato interno più complesso da popolare, non necessario qui).
+Assegnando `'AXI4-Lite'` a tutte le 13 porte e richiamando
+`hdlcoder.runWorkflow` nello **stesso processo MATLAB** (lo stato vive
+sull'oggetto modello in memoria, non su file), il workflow è arrivato a
+`WORKFLOW_OK` — RTL, VHDL, IP core packaging Vivado reale, IP
+`soc_wrapp_ip` v1.0 — **interamente da script, zero interazione GUI**, in
+parallelo e indipendentemente dal risultato ottenuto da Dario in GUI (stesso
+identificatore `AXI4-Lite`, stesse 13 porte: doppia conferma incrociata).
+
+Conclusione corretta: il punto 4 di §24.5 **è scriptabile**. Resta vero,
+invece, che senza i due fix precedenti (WorkflowConfig, plugin_rd.m) né lo
+script né la GUI arrivavano a questo punto.
+
+La ricetta è formalizzata in
+[`scripts/run_ipcore_generation.m`](../scripts/run_ipcore_generation.m):
+`addpath('hdlplugins'); run_ipcore_generation()` rigenera RTL + IP core da
+zero, senza toccare l'HDL Workflow Advisor. Verificato di nuovo, come script
+autonomo (non solo inline in una prova), stesso esito `WORKFLOW_OK`.
+
+### Conferma: la GUI si apre davvero, dopo `addpath('hdlplugins')` nella sessione interattiva
+
+Eseguito da Dario il 31/07/2026, HDL Workflow Advisor su `soc_wrapper_fpga`,
+Vivado 2022.1 reale:
+
+- **1.1 Set Target Device and Synthesis Tool**: *Digilent PYNQ-Z1* non compariva
+  nel menu "Target platform" finché non si è eseguito `addpath('hdlplugins')`
+  **nella sessione MATLAB interattiva stessa** (non basta averlo fatto in uno
+  script batch separato — ovvio con il senno di poi, ma vale la pena scriverlo:
+  la GUI legge il path della sessione in cui gira, non quello di un processo
+  MATLAB diverso). Dopo l'`addpath`, la board compare e i campi Family/Device/
+  Package/Speed risultano già `Zynq`/`xc7z020`/`clg400`/`-1` — corretti.
+- **1.2 Set Target Reference Design**: *Default system (AXI4-Lite)* si carica
+  senza errori — conferma diretta che il fix di §24.8 funziona anche lato GUI,
+  non solo da script. HDL Verifier non è licenziato su questa macchina
+  (verificato con `license('test','HDL_Verifier')` → `0`): sia "Insert AXI
+  Manager" sia "FPGA Data Capture" vanno lasciati su `off`.
+- **1.3 Set Target Interface**: le 13 porte del wrapper (`start_cmd`,
+  `timeout_thr`, `x0..x5`, `done`, `busy`, `timeout_flag`, `cycles`, `u0`)
+  assegnate tutte a `AXI4-Lite`, indirizzi auto-generati `0x100`–`0x130`.
+  **Nota per chi scriverà il driver software**: gli indirizzi di `x0`, `x1`,
+  `x2` NON sono nell'ordine "naturale" che ci si aspetterebbe scorrendo la
+  tabella dall'alto (sarebbe `x0=0x108, x1=0x10C, x2=0x110`); HDL Coder li ha
+  assegnati come `x1=0x108, x2=0x10C, x0=0x110` — il blocco di tre indirizzi è
+  giusto, ma scambiato fra le tre porte. Da `x3` in poi torna sequenziale.
+  **Non ritrascrivere questi offset a mano in nessun driver C**: vanno presi
+  dall'header/report generato da questo stesso passaggio (task "Generate
+  Software Interface" più avanti nel workflow), esattamente per lo stesso
+  motivo per cui §6 diceva di non trascrivere a mano la mappa registri — qui
+  vale doppio, visto l'ordine non intuitivo.
+- **2.1 Check Model Settings**: "Modify All" applicato senza rischio —
+  `Algebraic Loop` warning→error (coerente con l'accorgimento nondirect
+  feedthrough già in `build_wrapper_fpga.m`), `Block reduction` on→off,
+  `Conditional input branch execution` on→off (riguarda anche `u_latch`, uno
+  Switch). Sono le tre raccomandazioni standard di HDL Coder, non specifiche
+  al progetto.
+- **3.2 Generate RTL Code and IP Core**: ✅ **successo, primo su questo
+  progetto**. Nessuna opzione toccata rispetto ai default (FPGA Data Capture
+  in grigio per assenza di licenza HDL Verifier, coerente col punto 1.2).
+  Dal report generato (`hdl_prj3\hdlsrc`, HDL Coder 23.2, VHDL):
+
+  ```
+  IP core name:     soc_wrapp_ip        IP core version: 1.0
+  ModulePrefix:      soc_wrapp_ip_src_
+  TargetPlatform:    Digilent PYNQ-Z1    ReferenceDesign: Default system (AXI4-Lite)
+  SynthesisTool:     Xilinx Vivado       Chip: Zynq xc7z020 clg400 -1
+  TargetFrequency:   100 MHz             Workflow: IP Core Generation
+
+  Mappa registri (IOInterfaceMapping), confermata dal generatore — fonte
+  autorevole, non il documento §6 (che descriveva uno schema CTRL/STATUS a
+  bit impacchettati, superato dalla scelta di una porta scalare per registro):
+    0x100  start_cmd (W)     0x110  x0 (W)      0x120  done (R)
+    0x104  timeout_thr (W)   0x108  x1 (W)      0x124  busy (R)
+                              0x10C  x2 (W)      0x128  timeout_flag (R)
+                              0x114  x3 (W)      0x12C  cycles (R)
+                              0x118  x4 (W)      0x130  u0 (R)
+                              0x11C  x5 (W)
+  ```
+
+  Resta da fare: **costruire il bitstream** (fase "4. Embedded System
+  Integration"), non ancora eseguita al momento di scrivere questo paragrafo.

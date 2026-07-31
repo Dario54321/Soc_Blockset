@@ -172,10 +172,14 @@ Fatto: `hdlplugins/+PYNQZ1` + `hdlcoder_board_customization.m`, gate T14, tutto 
 manuale: vengono dai board file Vivado che il gruppo ha già installato, e il gate
 li riconfronta con quelli pin per pin.
 
-**Resta una conferma manuale**, una volta sola: aprire l'HDL Workflow Advisor su un
-modello con DUT e verificare che *Digilent PYNQ-Z1* compaia fra le target platform.
-Non è automatizzabile — il registro delle board di HDL Coder è p-coded e non espone
-API pubbliche (§23.6).
+**Confermato, 31/07/2026**: *Digilent PYNQ-Z1* compare fra le target platform
+nell'HDL Workflow Advisor (Dario, in GUI) e viene accettata correttamente anche da
+`hdlcoder.runWorkflow` da script (report IP core generato: `TargetPlatform: Digilent
+PYNQ-Z1`) — vedi [`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md). Resta vero,
+perché è una domanda diversa e non verificata qui, che il registro delle board di HDL
+Coder non espone un'API pubblica per **elencare tutte** le board registrate (§23.6):
+si può usare "Digilent PYNQ-Z1" con successo senza poter chiedere al prodotto "quali
+board conosci".
 
 **Punti aperti che scaricano su P12** (reference design, Dario):
 
@@ -218,7 +222,7 @@ API pubbliche (§23.6).
 
 ## Chi fa cosa adesso
 
-> Aggiornato **31/07/2026**, dopo la chiusura di G12b.
+> Aggiornato **31/07/2026**, dopo il primo IP core reale (§24.8).
 
 Tre cose sono pronte a partire e **nessuna delle tre dipende da chi scrive
 codice qui**. Sono elencate per proprietario, non per ordine cronologico.
@@ -226,18 +230,23 @@ codice qui**. Sono elencate per proprietario, non per ordine cronologico.
 ### ▶ Dario — l'unica cosa immediatamente eseguibile
 
 Il reference design **si costruisce e valida**: `validate_refdesign()` dà
-`completa` su Vivado 2022.1 (G12b chiuso il 31/07). Restano due passi, in ordine:
+`completa` su Vivado 2022.1 (G12b chiuso il 31/07). Il primo IP core reale è
+già stato generato — in GUI e da script, coppia di conferme indipendenti, vedi
+[`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md). Resta un solo passo:
 
-1. **Conferma manuale, chiude G11b.** Aprire l'HDL Workflow Advisor su
-   `models\soc_wrapper_fpga.slx` (prima `addpath('hdlplugins')`) e verificare che
-   compaiano *Digilent PYNQ-Z1* fra le target platform e *Default system
-   (AXI4-Lite)* fra i reference design. È l'ultimo controllo che non si può
-   automatizzare: il registro delle board di HDL Coder è p-coded
-   ([`23_BOARD_PYNQZ1` §23.6](23_BOARD_PYNQZ1.md)).
-2. **IP core e bitstream su `clg400` vero** (P13). Criterio di accettazione e
-   trappole note in [`05_PROCEDURA`](05_PROCEDURA.md) P13 — in particolare:
-   slack positivo su un design **che contiene registri**, e confronto del
-   conteggio `IBUF`/`OBUF` con quello atteso dalle porte.
+1. ~~Conferma manuale che *Digilent PYNQ-Z1* e *Default system (AXI4-Lite)*
+   compaiano nell'HDL Workflow Advisor~~ ✅ **31/07**. Non era solo una
+   conferma da fare a mano: c'era un vero bug in `plugin_rd.m` (API scritte
+   per R2026a, assenti su R2023b), corretto — vedi §24.8.
+2. ~~*Set Interfaces* e generazione dell'IP core~~ ✅ **31/07** — `soc_wrapp_ip`
+   v1.0, 100 MHz, VHDL. Riproducibile da script con
+   [`scripts/run_ipcore_generation.m`](../scripts/run_ipcore_generation.m),
+   senza aprire la GUI.
+3. ⬅ **Resta da fare: il bitstream** su `clg400` vero (P13). Criterio di
+   accettazione e trappole note in [`05_PROCEDURA`](05_PROCEDURA.md) P13 — in
+   particolare: slack positivo su un design **che contiene registri**, e
+   confronto del conteggio `IBUF`/`OBUF` con quello atteso dalle porte. Non
+   ancora tentato, né in GUI né da script.
 
 Attrito già noto e da **non** scambiare per un problema: due CRITICAL WARNING
 sul DDR all'applicazione del preset. Vengono dai board file Digilent, non da noi
