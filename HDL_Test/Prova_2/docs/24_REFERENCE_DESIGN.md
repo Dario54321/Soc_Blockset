@@ -606,3 +606,45 @@ momento del tentativo. Non è quindi (solo) un problema di `dtc`: **anche il
 percorso JTAG, che non ne ha bisogno, resta bloccato finché la scheda non è
 fisicamente collegata**. I due tentativi falliscono per due cause distinte e
 indipendenti — entrambe da risolvere prima di programmare davvero la scheda.
+
+### G13 chiuso per davvero — bitstream programmato su hardware reale (Dario, 31/07/2026)
+
+Con la Pynq-Z1 fisicamente collegata via USB (alimentazione + JTAG + UART,
+tutto sullo stesso cavo su J14/PROG UART — confermato da Windows:
+`Get-PnpDevice` mostra il convertitore **FTDI FT2232HQ** (VID_0403/PID_6010),
+lo stesso chip descritto nel manuale ufficiale Digilent per la circuiteria
+USB-JTAG-UART, enumerato come COM6), niente Ethernet disponibile e nessuna
+licenza HDL Verifier: il passo **4.4 Program Target Device** del Workflow
+Advisor offre comunque un metodo **JTAG nativo** (oltre a "Download"
+via SSH), che non ha bisogno né dell'uno né dell'altra.
+
+Verificato prima di accendere, consultando il manuale ufficiale Digilent
+(*PYNQ-Z1 Board Reference Manual*, rev. 13/04/2017, non a memoria):
+`JP4` (Mode jumper) seleziona il boot mode (SD/QSPI/JTAG, presi sui due pin
+rispettivamente in alto/centro/basso), `JP5` seleziona la sorgente di
+alimentazione (USB o REG, quest'ultima per alimentatore esterno 7-15VDC su
+J18 — **sopra i 15V rischio di danno permanente**, unico vero rischio
+elettrico documentato). Sulla scheda di Dario, **LD13 (power good)** e
+**LD12 (DONE)** risultavano già accesi prima di qualunque nostro intervento,
+segno che il boot da SD era già avvenuto correttamente in precedenza.
+
+Eseguito 4.4 con **Programming method = JTAG**: **"Passed Program target FPGA
+device"**. Log reale (`workflow_task_ProgramTargetDevice.log`): Vivado si
+connette all'hardware vero (`Digilent/003017A6DB2AA`, stesso seriale del
+convertitore FTDI rilevato da Windows), programma `xc7z020` con
+`system_top_wrapper.bit`, e **`End of startup status: HIGH`** — il segnale
+DONE è andato alto, la PL ha accettato il bitstream. Unico warning (non
+bloccante): JTAG come metodo di programmazione per reference design Zynq/SoC
+potrebbe essere deprecato in una release futura di HDL Coder — non un
+problema per Vivado 2022.1.
+
+**Cosa è verificato e cosa no, per essere precisi**: confermato che il
+bitstream si carica e configura correttamente sul silicio vero — l'intera
+catena Simulink → HDL Coder → IP Core → Vivado → bitstream → FPGA reale,
+end-to-end, per la prima volta su Prova_2. **Non ancora verificato**: che il
+wrapper risponda correttamente ai registri (scrivere `x`, dare `START`,
+leggere `DONE`/`u`) da software — quel test richiede o il percorso SSH/Linux
+(bloccato da `dtc` mancante, vedi sopra) o l'AXI Manager via JTAG (bloccato
+dalla licenza HDL Verifier assente). Prossimo passo, non urgente: installare
+`dtc` (via WSL, già installato da Dario ma non ancora usato per questo) per
+sbloccare il percorso SSH e fare il test funzionale vero.
