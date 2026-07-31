@@ -185,3 +185,79 @@ e una lista di celle contenente `[string`. Ancorare a inizio riga
 di misura che misura sé stesso. Vale la regola generale — **quando un banco
 dice che è andato tutto bene, il primo dubbio è che stia leggendo la cosa
 sbagliata**.
+
+---
+
+## 24.7 Prima esecuzione su Vivado 2022.1 reale (Dario, 30/07/2026)
+
+Il reference design è stato eseguito per la prima volta su una Vivado davvero
+supportata. Esito e correzioni che ne sono seguite.
+
+### Cosa ha funzionato
+
+- I board file della PYNQ-Z1, installati nel percorso di default di Vivado
+  (`<Vivado>\data\boards\board_files\pynq-z1\1.0\`), sono riconosciuti **senza
+  bisogno di `board.repoPaths`**. Le impronte SHA-256 combaciano con
+  `board_files_manifest.m`: la stessa revisione su due macchine.
+- Prima dei board file: `esito='fallita'` con
+  `ERROR: [Board 49-71] The board_part definition was not found for
+  www.digilentinc.com:pynq-z1:part0:1.0` — l'identificatore minuscolo di §24.3 è
+  quello giusto anche lì.
+- Dopo: `esito='parziale'`, **preset della board applicato**,
+  `ddrPart='MT41J256M16 RE-125'`, `fclk0='100'`. La parte più incerta del design
+  — che il PS si configuri dal preset invece che da 399 righe trascritte — regge
+  su una Vivado vera.
+
+### Il blocco, e perché era colpa di questo file
+
+```
+ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7' in design.
+```
+
+La 1.7 non è la versione che questo design vuole: vuole la **2.1**, che è quella
+usata da **tutti** i reference design MathWorks e dagli esempi SoC Blockset (385
+occorrenze nell'installazione, nessuna diversa). Su quella macchina la 2.1 è
+presente **su disco** (`axi_interconnect_v2_1\`) ma non era **in catalogo**.
+
+La causa prossima è quella installazione; la causa vera è stata questo file.
+`mw_ip` risolveva la versione a runtime prendendo *la più alta in catalogo*.
+Verificato che la logica in sé sceglie correttamente la 2.1 quando entrambe sono
+in catalogo — quindi lì il catalogo esponeva solo la 1.7, e lo script l'ha
+**istanziata senza dire nulla**, lasciando morire il progetto duecento righe
+dopo con un errore che non nomina la causa.
+
+**Scegliere una versione di IP è una configurazione, non un dettaglio da
+dedurre.** Le versioni ora stanno in una tabella esplicita (`MW_IP_VER` in cima
+a `system_top.tcl`), sono quelle di MathWorks, e se una manca il file si ferma
+subito dicendo cosa c'è invece:
+
+```
+MW_PYNQ: l'IP 'xilinx.com:ip:axi_interconnect:2.1' non e' nel catalogo di Vivado 2022.1.
+  In catalogo c'e' invece: xilinx.com:ip:axi_interconnect:1.7
+  NON viene sostituita automaticamente: la versione e' una scelta di progetto.
+  Note: ... provare 'update_ip_catalog -rebuild' e verificare la licenza.
+```
+
+> Nota sul difetto latente scoperto verificando: l'ordinamento era
+> **lessicografico**, quindi fra `1.9` e `1.10` avrebbe scelto `1.9`. Non è il
+> problema incontrato, ma sarebbe arrivato. Con le versioni fissate non esiste
+> più.
+
+### Il banco stampava una spiegazione, non una causa
+
+Segnalato da chi l'ha eseguito: nel ramo `parziale`, `validate_refdesign`
+stampava un testo fisso — *"questo Vivado non ha axi_interconnect, rimosso dopo
+la 2024.1"* — che era vero sulla macchina dove il banco era stato scritto e
+**falso e depistante** su una 2022.1, dove la causa era un'altra.
+
+È la trappola peggiore di uno strumento di misura: dare una spiegazione
+plausibile al posto del dato. Ora il banco riporta la **causa osservata** —
+l'errore del tcl per intero e le righe `ERROR`/`CRITICAL WARNING` del log — e
+non ipotizza nulla.
+
+### Passo concreto per chi riprende
+
+Su quella installazione: `update_ip_catalog -rebuild`, poi verificare che
+`get_ipdefs xilinx.com:ip:axi_interconnect:*` elenchi la **2.1**; se non compare,
+è licenza o catalogo. Poi `validate_refdesign()`, che ora dice esattamente cosa
+manca invece di una spiegazione preconfezionata.

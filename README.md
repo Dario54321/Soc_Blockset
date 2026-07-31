@@ -89,6 +89,7 @@ FPGA_TEST.slx             subsystem FPGA isolato per la codegen HDL
 docs/                     filone A: misure hardware, note SoC Builder, guida Vivado
 
 prove_2/                  esempio da zero (Register Channel): primo bitstream reale
+                          NB: cartella distinta da HDL_Test/Prova_2/ (filone B)
   MatMul_Processor.slx    lato software (ARM), genera A/B
   MatMul_FPGA.slx         lato FPGA, moltiplicazione matriciale 3x3 vera
   MatMul_Top.slx          Top: Register Channel + Register Write/Read, collega i due
@@ -142,7 +143,9 @@ chiunque tocchi il repository:
 
 - **I `.slx` versionati devono restare apribili con R2023b.** L'aggiornamento di
   formato è irreversibile e il repo è condiviso. Prima di ogni commit che tocca
-  un modello: `export_r2023b()` dalla cartella `Prova_2/scripts`.
+  un modello: `export_r2023b()` dalla cartella `Prova_2/scripts` — **e si
+  committa il risultato**, non lo si scarta come rumore binario. Il gate T16
+  rilegge i file e blocca la regressione se qualcuno lo dimentica.
 - **README e documentazione si aggiornano nello stesso commit del codice.**
 
 Per il filone B vale inoltre che ogni affermazione ha un gate che la verifica, e

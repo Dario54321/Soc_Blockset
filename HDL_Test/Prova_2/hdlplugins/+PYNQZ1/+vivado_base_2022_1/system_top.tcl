@@ -20,12 +20,11 @@
 #      menu. Trascrivere 399 parametri di una board diversa e' il modo piu'
 #      efficiente di introdurre un errore che si manifesta solo a runtime.
 #
-#   2. Le versioni degli IP si risolvono a tempo di esecuzione (mw_ip), e
-#      vengono stampate. Il file della ZedBoard le fissa. Risolverle rende il
-#      design indipendente dalla revisione minore di IP stabili da anni, e
-#      soprattutto fa fallire il sorgente con un messaggio COMPRENSIBILE
-#      invece che con un "IP not found" quando la versione di Vivado e'
-#      sbagliata.
+#   2. Le versioni degli IP stanno in una tabella unica in cima (MW_IP_VER) e
+#      vengono stampate quando si risolvono. Sono le stesse del file ZedBoard;
+#      quel che cambia e' che una versione mancante produce un messaggio che
+#      dice COSA c'e' in catalogo, invece di un "IP not found" opaco a meta'
+#      costruzione.
 #
 # VERSIONE DI VIVADO
 #   Serve la 2022.1 o la 2024.1 — le uniche supportate da HDL Coder R2026a.
@@ -46,22 +45,60 @@ variable script_folder
 set script_folder [_tcl::get_script_folder]
 
 # ---------------------------------------------------------------------------
-# Risoluzione delle versioni IP.
+# Versioni degli IP — FISSATE, non dedotte.
+#
+# Sono esattamente quelle usate da tutti i reference design MathWorks e dagli
+# esempi SoC Blockset (385 occorrenze nell'installazione, nessuna divergenza).
+# E' la combinazione che MathWorks valida sulle versioni di Vivado dichiarate in
+# plugin_rd.m.
+#
+# PERCHE' FISSATE. Una versione precedente di questo file le RISOLVEVA a runtime
+# prendendo la piu' alta in catalogo. Su una installazione 2022.1 reale il
+# catalogo esponeva solo 'axi_interconnect:1.7' (la 2.1 c'era su disco ma non in
+# catalogo), lo script ha istanziato la 1.7 senza dire nulla, e il progetto e'
+# morto duecento righe dopo con un opaco:
+#     ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7'
+# Scegliere una versione e' una CONFIGURAZIONE: se non c'e' quella giusta si
+# deve fermare dicendo cosa manca, non ripiegare in silenzio su un'altra.
+# Vedi docs\24_REFERENCE_DESIGN §24.7.
 # ---------------------------------------------------------------------------
+array set MW_IP_VER {
+    processing_system7  5.5
+    axi_interconnect    2.1
+    clk_wiz             6.0
+    proc_sys_reset      5.0
+    xlconcat            2.1
+    xlconstant          1.1
+}
+
 proc mw_ip {name} {
-    set defs [lsort [get_ipdefs -quiet xilinx.com:ip:${name}:*]]
-    if {[llength $defs] == 0} {
-        if {$name eq "axi_interconnect"} {
-            error "MW_PYNQ: 'axi_interconnect' non esiste in Vivado [version -short].\
-                   E' stato rimosso dopo la 2024.1 in favore di 'smartconnect'.\
-                   Questo reference design va costruito con Vivado 2022.1 o 2024.1,\
-                   che sono anche le uniche versioni supportate da HDL Coder R2026a."
-        }
-        error "MW_PYNQ: IP 'xilinx.com:ip:${name}' non disponibile in Vivado [version -short]."
+    global MW_IP_VER
+    if {![info exists MW_IP_VER($name)]} {
+        error "MW_PYNQ: nessuna versione fissata per l'IP '$name'. Aggiungerla a MW_IP_VER."
     }
-    set chosen [lindex $defs end]
-    puts "  \[mw_ip\] ${name} -> ${chosen}"
-    return $chosen
+    set want "xilinx.com:ip:${name}:$MW_IP_VER($name)"
+
+    if {[llength [get_ipdefs -quiet $want]] == 1} {
+        puts "  \[mw_ip\] ${name} -> ${want}"
+        return $want
+    }
+
+    # Non c'e'. Si dice cosa c'e' invece, perche' e' l'informazione che serve.
+    set avail [get_ipdefs -quiet xilinx.com:ip:${name}:*]
+    set msg "MW_PYNQ: l'IP '$want' non e' nel catalogo di Vivado [version -short]."
+    if {[llength $avail] == 0} {
+        append msg "\n  Nessuna versione di '$name' e' in catalogo."
+    } else {
+        append msg "\n  In catalogo c'e' invece: $avail"
+        append msg "\n  NON viene sostituita automaticamente: la versione e' una scelta di progetto."
+    }
+    if {$name eq "axi_interconnect"} {
+        append msg "\n  Note: 'axi_interconnect' e' stato RIMOSSO dopo la 2024.1 (resta 'smartconnect'),"
+        append msg "\n  e su alcune installazioni 2022.1 la 2.1 e' su disco ma non in catalogo."
+        append msg "\n  In quel caso provare 'update_ip_catalog -rebuild' e verificare la licenza."
+    }
+    append msg "\n  Versioni di Vivado supportate da questo reference design: vedi plugin_rd.m."
+    error $msg
 }
 
 variable design_name

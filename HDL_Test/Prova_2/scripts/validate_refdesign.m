@@ -11,15 +11,19 @@ function V = validate_refdesign(vivadoExe, verbose)
 %
 %     'completa'   il design si costruisce e valida. Serve Vivado 2022.1 o
 %                  2024.1 (le versioni dichiarate dal reference design).
-%     'parziale'   Vivado c'e' ma e' troppo recente: 'axi_interconnect' e'
-%                  stato rimosso dopo la 2024.1. Si verifica comunque la
-%                  parte piu' incerta — che il PRESET DELLA BOARD si applichi
-%                  dai board file — e si dichiara che il resto non e' provato.
+%     'parziale'   il PRESET DELLA BOARD si applica (la parte piu' incerta del
+%                  design), ma il block design non arriva in fondo. La CAUSA
+%                  varia con l'installazione e viene letta dal log, non assunta.
+%     'fallita'    nemmeno il Processing System viene costruito.
 %     'assente'    nessun Vivado trovato. Niente e' stato verificato.
 %
 %   Un esito 'parziale' NON e' un successo. La funzione lo restituisce senza
-%   sollevare errore perche' su questa macchina e' il massimo ottenibile, ma
-%   V.esito lo dice e il gate lo stampa.
+%   sollevare errore, ma V.esito lo dice e vengono stampate le cause osservate.
+%
+%   Cause viste finora, per riferimento — NON sono le uniche possibili:
+%     Vivado 2026.1 : 'axi_interconnect' non esiste piu' (rimosso dopo la 2024.1)
+%     Vivado 2022.1 : 'axi_interconnect:2.1' su disco ma non in catalogo
+%   Vedi docs\24_REFERENCE_DESIGN §24.7.
 
     if nargin < 2; verbose = true; end
     if nargin < 1 || isempty(vivadoExe); vivadoExe = find_vivado(); end
@@ -54,7 +58,10 @@ function V = validate_refdesign(vivadoExe, verbose)
         fprintf(fid, 'set_param board.repoPaths [list "%s"]\n', strrep(boardRepo,'\','/'));
     end
     fprintf(fid, 'if {[catch {source "%s"} msg]} {\n', strrep(fTcl,'\','/'));
-    fprintf(fid, '  puts "MWV: sourceFallito $msg"\n');
+    % L'errore del tcl e' multiriga e la parte utile ("in catalogo c'e' invece
+    % X") sta dopo la prima riga: si appiattisce, altrimenti la cattura per riga
+    % la perde proprio a chi serve.
+    fprintf(fid, '  puts "MWV: sourceFallito [string map [list \\n { | }] $msg]"\n');
     fprintf(fid, '} else {\n');
     fprintf(fid, '  puts "MWV: sourceOk"\n');
     fprintf(fid, '  foreach c [get_bd_cells] { puts "MWV: cella [string trimleft $c /]" }\n');
@@ -90,6 +97,14 @@ function V = validate_refdesign(vivadoExe, verbose)
     V.designValidato  = ~isempty(regexp(out, '^MWV: validazioneOk', 'once', 'lineanchors'));
     V.sourceOk        = ~isempty(regexp(out, '^MWV: sourceOk',      'once', 'lineanchors'));
     fclk              = firstMatch(out, '^MWV: fclk0 (\S+)');
+
+    % La CAUSA si legge dal log, non si assume. Una versione precedente stampava
+    % una spiegazione fissa ("questo Vivado non ha axi_interconnect") che era
+    % giusta solo sulla macchina dove era stata scritta: su una 2022.1 reale il
+    % motivo era un altro e il messaggio depistava chi lo leggeva.
+    V.errore = firstMatch(out, '^MWV: sourceFallito ([^\r\n]+)');
+    V.erroriVivado = unique(regexp(out, '^(?:ERROR|CRITICAL WARNING): \[[^\]]+\][^\r\n]*', ...
+                                   'match', 'lineanchors'), 'stable');
     % '[^\r\n]+' e non '.+': in MATLAB il punto matcha ANCHE il newline
     % (l'opzione per escluderlo e' 'dotexceptnewline'), quindi '.+' si
     % mangerebbe le righe successive.
@@ -114,18 +129,46 @@ function V = validate_refdesign(vivadoExe, verbose)
         fprintf('  celle create: %s\n', strjoin(V.celle, ', '));
         switch V.esito
             case 'parziale'
-                fprintf(2, ['  VERIFICA PARZIALE: questo Vivado non ha ''axi_interconnect'' ' ...
-                            '(rimosso dopo la 2024.1).\n' ...
-                            '  Interconnessione, clock del core e reset NON sono stati provati.\n' ...
-                            '  La verifica completa e'' il primo atto di chi ha Vivado 2022.1.\n']);
+                fprintf(2, ['  VERIFICA PARZIALE: il preset della board si applica, ma il ' ...
+                            'block design non e'' stato completato.\n' ...
+                            '  Interconnessione, clock del core e reset NON sono stati provati.\n']);
+                mostraCause(V);
             case 'fallita'
-                fprintf(2, '  FALLITA. Log in coda:\n%s\n', tail(V.log, 25));
+                fprintf(2, '  FALLITA: il Processing System non e'' stato nemmeno costruito.\n');
+                mostraCause(V);
+                fprintf(2, '  Log in coda:\n%s\n', tail(V.log, 15));
         end
     end
 end
 
 
 % =====================================================================
+function mostraCause(V)
+%MOSTRACAUSE  Stampa la causa OSSERVATA, non quella supposta.
+%
+%   Chi legge questo messaggio sta su una macchina diversa da quella dove il
+%   banco e' stato scritto. Una spiegazione preconfezionata la' e' un depistaggio
+%   qui: si riportano l'errore del sorgente tcl e le righe ERROR/CRITICAL del log.
+
+    if ~isempty(V.errore)
+        fprintf(2, '  Causa riportata dal tcl:\n    %s\n', V.errore);
+    end
+    if ~isempty(V.erroriVivado)
+        fprintf(2, '  Righe ERROR/CRITICAL nel log di Vivado:\n');
+        for k = 1:min(numel(V.erroriVivado), 8)
+            fprintf(2, '    %s\n', strtrim(V.erroriVivado{k}));
+        end
+        if numel(V.erroriVivado) > 8
+            fprintf(2, '    ... e altre %d\n', numel(V.erroriVivado)-8);
+        end
+    end
+    if isempty(V.errore) && isempty(V.erroriVivado)
+        fprintf(2, ['  Nessun ERROR nel log: il tcl non e'' arrivato in fondo senza ' ...
+                    'segnalare. Ispezionare V.log.\n']);
+    end
+end
+
+
 function s = firstMatch(txt, pat)
     tk = regexp(txt, pat, 'tokens', 'once', 'lineanchors');
     if isempty(tk); s = ''; else; s = tk{1}; end
@@ -153,5 +196,5 @@ function r = board_repo_root()
 end
 
 function rmdirQuiet(d)
-    try; rmdir(d, 's'); catch; end
+    try rmdir(d, 's'); catch; end
 end

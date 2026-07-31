@@ -60,7 +60,19 @@ function export_r2023b(modelDir)
 
             copyfile(tmp, src, 'f');
             delete(tmp);
-            fprintf('  OK    %s\n', files(k).name);
+
+            % SI VERIFICA IL FILE, NON IL COMANDO. Che exportToVersion e
+            % copyfile non abbiano sollevato errori non dimostra che sul disco
+            % ci sia un modello R2023b: lo dimostra rileggerlo.
+            % Il 30/07/2026 i modelli committati erano R2026a mentre questo
+            % script stampava "tutti compatibili": l'export era stato scartato
+            % a valle da un `git checkout` e nulla se n'era accorto.
+            got = Simulink.MDLInfo(src).ReleaseName;
+            if ~strcmpi(got, TARGET)
+                error('export_r2023b:notWritten', ...
+                    'dopo l''export il file e'' ancora %s, non %s', got, TARGET);
+            end
+            fprintf('  OK    %-24s -> %s\n', files(k).name, got);
 
         catch err
             if bdIsLoaded(name); close_system(name, 0); end

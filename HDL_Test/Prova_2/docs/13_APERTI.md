@@ -235,8 +235,13 @@ tornerà allo stream.
 3. ~~**A4 — board plugin PYNQ-Z1**~~ ✅ *(29/07)*, e con esso il reference design
    ([`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md)): scritto e verificato per
    quanto si può senza Vivado 2022.1.
-4. **Reference design** partendo da `+vivado_base_2022_1` (AXI4-Lite, più piccolo
-   dello stream) → **Dario**, con Vivado 2022.1.
+4. **Reference design** → **Dario**, con Vivado 2022.1. Scritto e già eseguito
+   una volta (30/07): board file riconosciuti, preset della board applicato,
+   DDR3 reale confermato. **Blocco attuale**: `axi_interconnect:2.1` non è in
+   catalogo su quella installazione (c'è la 1.7). Passo concreto:
+   `update_ip_catalog -rebuild`, poi verificare `get_ipdefs`, poi rilanciare
+   `validate_refdesign()` — che ora riporta la causa osservata invece di una
+   spiegazione fissa ([`24_REFERENCE_DESIGN` §24.7](24_REFERENCE_DESIGN.md)).
 5. **Bring-up**: `ID_VER` → registro R/W → un vettore noto → **la prima lettura di
    `CYCLES`**. È lì che si scopre se i 33 µs sono raggiungibili.
 6. **Misurare le costanti dello stack PS** e sostituirle in `soc_params`: oggi sono

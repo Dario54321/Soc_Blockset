@@ -64,6 +64,9 @@ function ok = run_regression()
     % --------------------------------------------------------------- T15
     results(end+1,:) = runTest('T15 reference design coerente (G12a)', @() check_rd());
 
+    % --------------------------------------------------------------- T16
+    results(end+1,:) = runTest('T16 i modelli su disco sono R2023b (R1)', @() check_release());
+
     % ------------------------------------------------------------ report
     fprintf('-------------------------------------------\n');
     pass = all([results{:,2}]);
@@ -481,6 +484,40 @@ end
 
 
 % =====================================================================
+function check_release()
+%CHECK_RELEASE  Regola R1 verificata SUL FILE, non sul comando che lo scrive.
+%
+%   export_r2023b converte i modelli; questo controlla che sul disco ci siano
+%   davvero. Sono due cose diverse, e il 30/07/2026 hanno divergito: i modelli
+%   committati erano R2026a mentre l'export dichiarava successo, perche' il
+%   risultato era stato scartato a valle da un `git checkout`. Chi lavora su
+%   R2023b non avrebbe potuto aprirli.
+%
+%   E' il gate che rende R1 una proprieta' del repository invece che di un
+%   comando che qualcuno deve ricordarsi di lanciare.
+
+    here = fileparts(mfilename('fullpath'));
+    mdlDir = fullfile(fileparts(here), 'models');
+    f = dir(fullfile(mdlDir, '*.slx'));
+    assert(~isempty(f), 'checkRelease:noModels', 'Nessun modello in %s', mdlDir);
+
+    bad = {};
+    for k = 1:numel(f)
+        p = fullfile(f(k).folder, f(k).name);
+        r = Simulink.MDLInfo(p).ReleaseName;
+        if ~strcmpi(r, 'R2023b')
+            bad{end+1} = sprintf('%s (%s)', f(k).name, r); %#ok<AGROW>
+        end
+    end
+
+    assert(isempty(bad), 'checkRelease:notR2023b', ...
+        ['%d modelli versionati NON sono R2023b: %s\n' ...
+         'Chi lavora su R2023b non puo'' aprirli. Eseguire export_r2023b() ' ...
+         'e COMMITTARE il risultato — non scartarlo.'], ...
+        numel(bad), strjoin(bad, ', '));
+end
+
+
 function check_rd()
 %CHECK_RD  Gate G12a — coerenza del reference design (docs\24_REFERENCE_DESIGN).
 %

@@ -592,3 +592,56 @@ Da cui una trappola in cui sono caduto: una prova costruita su quella proprietà
 **entrambi i rami fallivano con lo stesso errore**. Una controprova che fallisce
 per lo stesso motivo della prova non è una controprova — è un gate che non ha mai
 funzionato in nessuna delle due direzioni.
+
+---
+
+## 15. Il comando è riuscito, l'artefatto no — R1 violata per otto commit
+
+Il caso peggiore di questo diario, perché non è un errore del toolchain: è un
+errore di metodo, e la regola che l'avrebbe evitato era già scritta.
+
+**Sintomo, scoperto solo perché qualcuno ha aperto il repository su R2023b.**
+I modelli versionati in `models/` erano **R2026a**. Chi lavora su R2023b non
+poteva aprirli — cioè la regola R1, quella che esiste apposta, era violata nel
+repository mentre `export_r2023b` stampava a ogni giro:
+
+```
+Tutti i modelli sono compatibili R2023B.
+```
+
+**Verifica del fatto**, prima di spiegarlo:
+
+```matlab
+Simulink.MDLInfo('models/soc_wrapper_fpga.slx').ReleaseName   % -> R2026a
+export_r2023b();
+Simulink.MDLInfo('models/soc_wrapper_fpga.slx').ReleaseName   % -> R2023b
+```
+
+**Causa.** `export_r2023b` funzionava: convertiva e riscriveva i file. Ma dopo
+averlo eseguito, vedendo i `.slx` comparire come modificati in `git status`, li
+ho **ripristinati con `git checkout`** per non fare un commit di rumore —
+liquidando la differenza binaria come *"solo timestamp interni"*. Non l'avevo
+verificato. Era una spiegazione plausibile appiccicata a un dato anomalo, e ha
+buttato via esattamente il risultato dell'export.
+
+**Due cose erano sbagliate, non una:**
+
+1. Un `.slx` che cambia dopo un export **non è rumore**: è il prodotto. Un diff
+   binario non si spiega, si guarda.
+2. `export_r2023b` verificava che il *comando* riuscisse, mai che il *file* fosse
+   diventato R2023b. Un gate che non rilegge il prodotto non è un gate — e
+   soprattutto non poteva accorgersi che qualcuno, a valle, lo scartasse.
+
+**Correzioni:**
+
+- `export_r2023b` rilegge ogni file con `Simulink.MDLInfo` e fallisce se la
+  release non è quella attesa;
+- gate **T16** in regressione: tutti i `.slx` in `models/` devono essere R2023b.
+  Provato in fallimento ricostruendo un modello (che lo riscrive R2026a): la
+  regressione scatta. Così R1 diventa una proprietà del repository, e non di un
+  comando che qualcuno deve ricordarsi di lanciare **e di committare**.
+
+> Vale anche come regola generale, ed è la stessa già scritta in `04_CONVENZIONI`
+> R7: *verificare l'artefatto, non l'intenzione*. Qui il messaggio "tutti
+> compatibili" era vero al momento in cui veniva stampato e falso trenta secondi
+> dopo. Nessuno se n'è accorto per otto commit.

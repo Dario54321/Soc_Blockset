@@ -31,7 +31,7 @@ matB : errore max = 0
 sonda: errore max = 0        (LSB del formato = 0.125)
 ```
 
-A fine Test 1: 11 gate verdi (oggi 15), ognuno validato con una mutazione che
+A fine Test 1: 11 gate verdi (oggi 16), ognuno validato con una mutazione che
 riproduce un difetto reale.
 Ha prodotto la struttura a tre modelli, le ricette di configurazione, la suite di
 gate e le note API — materiale che vale indipendentemente dal payload.
@@ -46,7 +46,7 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | P9 · wrapper: CSR, FSM start/done, watchdog, contatore | ✅ gate G9 (T12), 3 mutazioni catturate |
 | P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
 | P11 · board plugin PYNQ-Z1 | ✅ gate G11 (T14) → [`docs/23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) — resta una conferma manuale |
-| P12 · reference design | ✅ **scritto e verificato** → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) — da **costruire** con Vivado 2022.1 |
+| P12 · reference design | ✅ scritto · 🔄 **primo giro su Vivado 2022.1 reale fatto** (30/07): board file riconosciuti, preset applicato, DDR3 vero. Bloccato su `axi_interconnect` in catalogo → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.7 |
 | P13 · bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
 | P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
 
@@ -133,7 +133,7 @@ S = latency_study();      % rifà lo studio: tabella overhead + tabella budget
 
 ## La suite di regressione
 
-Un comando, 15 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
+Un comando, 16 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 
 | Gate | Cosa verifica |
 |---|---|
@@ -148,6 +148,7 @@ Un comando, 15 gate, **ognuno verificato anche in fallimento**. ~4 minuti.
 | T13 | **G10**: l'overhead del wrapper è ancora 1 ciclo |
 | T14 | **G11**: plugin PYNQ-Z1 registrato, e i pin combaciano coi board file |
 | T15 | **G12a**: i quattro file del reference design dicono la stessa cosa |
+| T16 | **R1**: i `.slx` su disco sono davvero R2023b, non solo esportabili |
 
 Mutazioni usate per validarli:
 
@@ -170,6 +171,7 @@ Mutazioni usate per validarli:
 | istanza rinominata nel `.tcl` ma non in `plugin_rd` | T15 |
 | board part maiuscolo (`PYNQ-Z1` invece di `pynq-z1`) | T15 |
 | `clock-div` del device tree incoerente col clock reale | T15 |
+| un modello ricostruito e lasciato in formato R2026a | T16 |
 
 ---
 
@@ -235,14 +237,19 @@ tabella evita il tentativo a vuoto.
 
 | | serve | verificato? |
 |---|---|---|
-| **aprire i modelli** `.slx` | R2023b o successiva | ✅ ad ogni commit, gate `export_r2023b` |
+| **aprire i modelli** `.slx` | R2023b o successiva | ✅ gate **T16**, che rilegge i file — non solo `export_r2023b` |
 | **rigenerare i modelli** (`build_*`) e la regressione | **R2026a** | ✅ ricostruzione da zero, 131 s + 15 gate |
 | **usare la board e il reference design** in HDL Coder | R2023b+ *in linea di principio* | ⚠️ **non provato**: qui non c'è R2023b |
 | **costruire il block design / il bitstream** | **Vivado 2022.1 o 2024.1** | ⚠️ qui c'è solo la 2026.1 → `validate_refdesign` dà `parziale` |
 
-> **La regola R1 garantisce i modelli, non gli script.** `export_r2023b` verifica
-> che ogni `.slx` versionato si apra con R2023b; nessuno ha mai eseguito gli
+> **La regola R1 garantisce i modelli, non gli script.** Il gate T16 rilegge ogni
+> `.slx` in `models/` e pretende che sia R2023b; nessuno ha mai eseguito gli
 > script di questa cartella su R2023b, e non c'è un gate che lo affermi.
+>
+> T16 esiste perché per otto commit R1 è stata **violata**: `export_r2023b`
+> dichiarava successo e i file su disco erano R2026a, perché il risultato
+> dell'export veniva scartato a valle ([`11_NOTE_API` §15](docs/11_NOTE_API.md)).
+> Verificare il comando non basta: va riletto il file.
 > Un'ispezione ha escluso costrutti introdotti dopo il 2023 nei file che servono
 > per il deploy (`hdlplugins/`, `check_refdesign`, `validate_refdesign`), ma
 > **ispezionare non è provare**.
