@@ -2,7 +2,9 @@
 
 > Passo P12, **scritto qui, da costruire da chi ha Vivado 2022.1**.
 > Verificabile con `check_refdesign` (coerenza) e `validate_refdesign` (Vivado).
-> Ultima esecuzione: 2026-07-31 — primo bitstream reale costruito, G13 chiuso (§24.8).
+> Ultima esecuzione: 2026-07-31 — `validate_refdesign()` esito `completa`
+> (G12b chiuso), primo bitstream reale costruito e programmato su hardware
+> vero (G13 chiuso, §24.8).
 
 ## 24.1 Che cos'è
 
@@ -53,13 +55,14 @@ confine verso la PL va impostato dopo, e **verificato che sopravviva** al
 preset. `PCW_FPGA0_PERIPHERAL_FREQMHZ` = 100 e `PCW_USE_M_AXI_GP0` = 1 riletti
 dal design costruito: sopravvivono.
 
-### Le versioni degli IP si risolvono a runtime
+### Le versioni degli IP stanno in una tabella unica
 
-Il file della ZedBoard le fissa (`processing_system7:5.5`, `clk_wiz:6.0`, …).
-Qui un `mw_ip` le cerca e le stampa. Serve a due cose: rendere il design
-indipendente dalla revisione minore di IP stabili da anni, e **fallire con un
-messaggio comprensibile** invece che con un "IP not found" quando la versione
-di Vivado è sbagliata.
+`MW_IP_VER`, in cima a `system_top.tcl`. Sono le stesse del file ZedBoard;
+quel che cambia è che stanno in un posto solo e vengono stampate quando si
+risolvono.
+
+> Una prima stesura le **risolveva a runtime** prendendo la più alta in
+> catalogo. È stata la causa di un blocco reale: §24.7.
 
 ## 24.3 Tre dettagli che costano un pomeriggio
 
@@ -133,18 +136,14 @@ Esegue `system_top.tcl` in Vivado. Tre esiti, tenuti distinti:
 
 | esito | significato |
 |---|---|
-| `completa` | il design si costruisce e valida. Serve Vivado 2022.1 o 2024.1 |
-| `parziale` | Vivado c'è ma è troppo recente. Si verifica comunque il preset della board; il resto **non è provato** |
+| `completa` | il design si costruisce e valida |
+| `parziale` | il preset della board si applica, ma il block design non arriva in fondo. La causa **viene letta dal log**, non assunta |
+| `fallita` | nemmeno il Processing System viene costruito |
 | `assente` | nessun Vivado. Niente è stato verificato |
 
-**Su questa macchina l'esito è `parziale`** (Vivado 2026.1). Verificato: il
-preset si applica dai vostri board file, e gli override sul confine PL
-sopravvivono. Non verificato: interconnessione, clock del core, reset, e la
-validazione del design.
-
-> **La verifica completa è il primo atto di chi ha Vivado 2022.1.** Un solo
-> comando: `validate_refdesign()`. Se l'esito non è `completa`, il messaggio
-> dice cosa è mancato.
+**Stato attuale: `completa`**, sia su Vivado 2022.1 (Dario, 31/07 — gate G12b) sia
+su 2026.1. Il design si costruisce: 7 celle, preset della board applicato, DDR3
+reale, e `validate_bd_design` senza errori.
 
 ## 24.5 Cosa resta da fare a chi ha Vivado 2022.1
 
