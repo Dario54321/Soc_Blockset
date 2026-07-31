@@ -148,12 +148,12 @@ validazione del design.
 
 ## 24.5 Cosa resta da fare a chi ha Vivado 2022.1
 
-1. `addpath('<...>\HDL_Test\Prova_2\hdlplugins')`
-2. `validate_refdesign()` → deve dare `completa`
-3. Aprire l'HDL Workflow Advisor su `soc_wrapper_fpga`: *Digilent PYNQ-Z1* fra
-   le target platform, *Default system (AXI4-Lite)* fra i reference design
-   (è anche il gate G11b, la conferma manuale rimasta da P11)
-4. Generare l'IP core e costruire il bitstream (P13)
+1. ~~`addpath('<...>\HDL_Test\Prova_2\hdlplugins')`~~ ✅
+2. ~~`validate_refdesign()` → deve dare `completa`~~ ✅ **31/07, G12b chiuso**
+3. ⬅ **SI RIPARTE DA QUI.** Aprire l'HDL Workflow Advisor su `soc_wrapper_fpga`:
+   *Digilent PYNQ-Z1* fra le target platform, *Default system (AXI4-Lite)* fra i
+   reference design (è il gate G11b, la conferma manuale rimasta da P11)
+4. Generare l'IP core e costruire il bitstream su `clg400` vero (P13)
 
 Punti su cui aspettarsi attrito, tutti già noti e nessuno verificato da noi:
 

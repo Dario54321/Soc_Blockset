@@ -238,7 +238,7 @@ tabella evita il tentativo a vuoto.
 | | serve | verificato? |
 |---|---|---|
 | **aprire i modelli** `.slx` | R2023b o successiva | ✅ gate **T16**, che rilegge i file — non solo `export_r2023b` |
-| **rigenerare i modelli** (`build_*`) e la regressione | **R2026a** | ✅ ricostruzione da zero, 131 s + 15 gate |
+| **rigenerare i modelli** (`build_*`) e la regressione | **R2026a** | ✅ ricostruzione da zero, 131 s + 16 gate |
 | **usare la board e il reference design** in HDL Coder | R2023b+ *in linea di principio* | ⚠️ **non provato**: qui non c'è R2023b |
 | **costruire il block design / il bitstream** | **Vivado 2022.1 o 2024.1** | ⚠️ qui c'è solo la 2026.1 → `validate_refdesign` dà `parziale` |
 

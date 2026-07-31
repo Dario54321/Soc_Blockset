@@ -1,7 +1,8 @@
 # Punti aperti e prossimi passi
 
-> Stato al 28/07/2026. Tutto ciò che segue è **noto, verificato e non ancora fatto**.
-> Chi riprende il lavoro parte da qui.
+> Stato al **31/07/2026**. Tutto ciò che segue è **noto, verificato e non ancora
+> fatto**. Chi riprende il lavoro parte da qui — e chi ha Vivado 2022.1 parte
+> dalla sezione «Chi fa cosa adesso».
 
 ---
 
@@ -215,37 +216,79 @@ API pubbliche (§23.6).
 
 ---
 
-## Ordine consigliato — aggiornato dopo A0
+## Chi fa cosa adesso
 
-Il riorientamento cambia le priorità: **A1 non serve più**, perché con AXI4-Lite il
-dato non è più un vettore su AXI4-Stream. Resta come riferimento se un domani si
-tornerà allo stream.
+> Aggiornato **31/07/2026**, dopo la chiusura di G12b.
 
-1. **Concordare il contratto** con l'altro ingegnere
-   ([`20_CONTRATTO_INTERFACCIA.md`](20_CONTRATTO_INTERFACCIA.md) §8).
-   È il passo che protegge tutto il resto, e costa mezza giornata. Ora c'è anche
-   un numero da mettergli in mano: **ordine dei 3000 cicli** (§5 del contratto).
-2. ~~**Ricostruire i modelli su AXI4-Lite**~~ ✅ *(28-29/07)*: `soc_wrapper_fpga`
-   è CSR + FSM start/done + watchdog + contatore, con il blocco di calcolo come
-   segnaposto a latenza configurabile; `p.transport.kind = 'axi4lite'`.
-2bis. **Decidere D3** — bare-metal o Linux mappato. Ora il prezzo è quantificato:
-   **850 cicli**, il 26 % del budget ([`22_STUDIO_LATENZA`](22_STUDIO_LATENZA.md)
-   §22.4). Non è una decisione tecnica in senso stretto: dipende da cosa deve fare
-   il PS oltre a questo anello. **Serve prima del reference design.**
-3. ~~**A4 — board plugin PYNQ-Z1**~~ ✅ *(29/07)*, e con esso il reference design
-   ([`24_REFERENCE_DESIGN`](24_REFERENCE_DESIGN.md)): scritto e verificato per
-   quanto si può senza Vivado 2022.1.
-4. **Reference design** → **Dario**, con Vivado 2022.1. Scritto e già eseguito
-   una volta (30/07): board file riconosciuti, preset della board applicato,
-   DDR3 reale confermato. **Blocco attuale**: `axi_interconnect:2.1` non è in
-   catalogo su quella installazione (c'è la 1.7). Passo concreto:
-   `update_ip_catalog -rebuild`, poi verificare `get_ipdefs`, poi rilanciare
-   `validate_refdesign()` — che ora riporta la causa osservata invece di una
-   spiegazione fissa ([`24_REFERENCE_DESIGN` §24.7](24_REFERENCE_DESIGN.md)).
-5. **Bring-up**: `ID_VER` → registro R/W → un vettore noto → **la prima lettura di
-   `CYCLES`**. È lì che si scopre se i 33 µs sono raggiungibili.
-6. **Misurare le costanti dello stack PS** e sostituirle in `soc_params`: oggi sono
-   ordini di grandezza da letteratura.
+Tre cose sono pronte a partire e **nessuna delle tre dipende da chi scrive
+codice qui**. Sono elencate per proprietario, non per ordine cronologico.
+
+### ▶ Dario — l'unica cosa immediatamente eseguibile
+
+Il reference design **si costruisce e valida**: `validate_refdesign()` dà
+`completa` su Vivado 2022.1 (G12b chiuso il 31/07). Restano due passi, in ordine:
+
+1. **Conferma manuale, chiude G11b.** Aprire l'HDL Workflow Advisor su
+   `models\soc_wrapper_fpga.slx` (prima `addpath('hdlplugins')`) e verificare che
+   compaiano *Digilent PYNQ-Z1* fra le target platform e *Default system
+   (AXI4-Lite)* fra i reference design. È l'ultimo controllo che non si può
+   automatizzare: il registro delle board di HDL Coder è p-coded
+   ([`23_BOARD_PYNQZ1` §23.6](23_BOARD_PYNQZ1.md)).
+2. **IP core e bitstream su `clg400` vero** (P13). Criterio di accettazione e
+   trappole note in [`05_PROCEDURA`](05_PROCEDURA.md) P13 — in particolare:
+   slack positivo su un design **che contiene registri**, e confronto del
+   conteggio `IBUF`/`OBUF` con quello atteso dalle porte.
+
+Attrito già noto e da **non** scambiare per un problema: due CRITICAL WARNING
+sul DDR all'applicazione del preset. Vengono dai board file Digilent, non da noi
+([`24_REFERENCE_DESIGN` §24.5](24_REFERENCE_DESIGN.md)).
+
+### ▶ Verso l'altro ingegnere — otto domande
+
+[`20_CONTRATTO_INTERFACCIA` §8](20_CONTRATTO_INTERFACCIA.md). Le due che
+contano davvero:
+
+- **cosa sono** i due vettori 3×1 che attraversano il confine;
+- **cos'altro** lo attraverserà (i dati grezzi radar/lidar restano sull'ARM?).
+
+La seconda decide la taglia del progetto: sopra i ~10–12 elementi il trasporto
+giusto torna a essere il DMA e metà architettura cambia. Ora c'è anche un numero
+da dargli: **ordine dei 3000 cicli a 100 MHz** (§5 del contratto).
+
+### ▶ Decisione del gruppo — cosa gira sull'ARM
+
+Bare-metal (3150 cicli) o Linux con registri mappati (2300). Non è una scelta
+tecnica in senso stretto: dipende da cosa deve fare il PS oltre a questo anello.
+**Il prezzo di Linux è 850 cicli, il 26 % del budget**
+([`22_STUDIO_LATENZA` §22.4](22_STUDIO_LATENZA.md)). Un driver di kernel è fuori
+per aritmetica. Serve decisa prima di scrivere il software del PS (P14).
+
+---
+
+### Dopo, quando c'è la board
+
+5. **Bring-up**, cinque passi senza saltarne nessuno: `ID_VER` → registro R/W →
+   un vettore noto → **la prima lettura reale di `CYCLES`**. È lì che si scopre
+   se i 33 µs sono raggiungibili.
+6. **Misurare le costanti dello stack PS** e sostituirle in `soc_params`: oggi
+   sono ordini di grandezza da letteratura ([A5](#a5--cose-non-verificate-da-non-dare-per-buone)),
+   ed è quello che trasforma "ordine dei 3000 cicli" in un numero.
+
+### Chiusi di recente
+
+| | |
+|---|---|
+| Wrapper AXI4-Lite su registri | ✅ 28–29/07 |
+| Board plugin PYNQ-Z1 | ✅ 29/07 |
+| Reference design scritto | ✅ 29/07 |
+| **Reference design validato su Vivado reale (G12b)** | ✅ **31/07** |
+
+> Il blocco su `axi_interconnect` che compariva qui fino al 30/07 **è risolto**:
+> non era un problema di catalogo da rigenerare, era `mw_ip` che sceglieva la
+> versione da `get_ipdefs` — comando che non è una prova di esistenza
+> ([`11_NOTE_API` §16](11_NOTE_API.md)). Versione ora fissata a `2.1`.
+
+---
 
 ### Cosa resta di A1
 
