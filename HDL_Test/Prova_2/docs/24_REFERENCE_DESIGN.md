@@ -167,6 +167,53 @@ Punti su cui aspettarsi attrito, tutti già noti e nessuno verificato da noi:
   silicio sulla ZedBoard. È l'intervallo offerto nel Workflow Advisor, **non**
   una promessa di chiusura temporale: quella la dice il report di timing.
 
+## 24.6bis — G12b risolto (31/07/2026): `axi_interconnect` "Discontinued" sulla 2.1 di questa istanza Vivado 2022.1
+
+`validate_refdesign()` su questa macchina (Vivado 2022.1 reale, non 2026.1) dava
+`esito='parziale'` anche **dopo** aver installato i board file corretti (preset
+applicato, `ddrPart` giusto — quindi non era più il problema del §24.5). Causa
+reale, dal log completo (non dal riassunto stampato per il ramo `parziale`, che
+è testo fisso pensato per la 2026.1 e qui fuorviante):
+
+```
+ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7' in design.
+```
+
+**`mw_ip` (risoluzione dinamica via `get_ipdefs` con wildcard) trova solo la
+versione `1.7`**, che il catalogo IP di questa installazione marca
+`Discontinued` per **tutte** le famiglie (verificato via
+`get_property SUPPORTED_FAMILIES`) — non solo zynq, non è quindi (solo) il
+"rimosso dopo la 2024.1" ipotizzato sopra. `create_bd_cell` rifiuta di
+istanziare un IP così marcato, a prescindere dalla parte target: confermato
+isolando il problema (`axi_gpio`/`clk_wiz` si istanziano senza problemi sulla
+stessa parte, quindi non è un blocco della parte).
+
+**La versione `2.1`** — quella che usa il reference design **ufficiale
+MathWorks** (`+ZedBoard/+vivado_base_2022_1/system_top.tcl` riga 188, cablata
+senza `get_ipdefs`) — **esiste realmente su disco**
+(`data/ip/xilinx/axi_interconnect_v2_1/component.xml`, `name=axi_interconnect
+version=2.1`), ma `get_ipdefs` (anche con VLNV esatto, anche dopo
+`update_ip_catalog -rebuild`, anche aggiungendola come `ip_repo_paths`
+esplicito — Vivado la ignora perché "already part of the Xilinx supplied IP
+repositories") **non la elenca**. Solo l'istanziazione **diretta** per VLNV
+(`create_bd_cell -vlnv xilinx.com:ip:axi_interconnect:2.1`, bypassando
+`get_ipdefs`) funziona — verificato isolatamente prima di toccare il file
+reale.
+
+**Fix applicato**: `mw_ip` ora restituisce `xilinx.com:ip:axi_interconnect:2.1`
+per un valore fisso quando `name eq "axi_interconnect"`, **senza** passare
+dalla ricerca dinamica — esattamente come fa il file MathWorks originale.
+Nessun'altra chiamata a `mw_ip` (per altri IP) è toccata: il meccanismo
+dinamico resta per tutto il resto, dove ha sempre funzionato.
+
+**`validate_refdesign()` dopo il fix**: `esito='completa'` (confermato). G12b
+chiuso.
+
+> Nota per chi legge questo su una macchina diversa: se lì il catalogo IP
+> espone correttamente la 2.1 in `get_ipdefs`, il fix è comunque innocuo (la
+> restituisce comunque, solo non dinamicamente) — non introduce una
+> regressione su installazioni dove il problema originale non si presenta.
+
 ## 24.6 Un errore in cui sono caduto, per chi userà il banco
 
 La prima versione di `validate_refdesign` ha dichiarato **`completa`** una

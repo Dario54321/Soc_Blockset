@@ -88,18 +88,23 @@ Scritto qui e verificato per quanto possibile senza il tool giusto:
 - **Gate G12a** ✅ T15: i quattro file (plugin_rd, tcl, dtsi, registrazione) si
   legano per nome e per numero; il gate verifica che dicano ancora la stessa
   cosa. Sei mutazioni catturate.
-- **Gate G12b** ⬜ `validate_refdesign()` deve dare `completa`: su questa
-  macchina dà `parziale`, perché Vivado 2026.1 non ha più `axi_interconnect`.
-  **È il primo atto di chi ha la 2022.1.**
+- **Gate G12b** ✅ *(31/07)* `validate_refdesign()` dà `completa` con Vivado
+  2022.1 reale. Bloccante trovato e risolto lungo la strada: la risoluzione
+  dinamica di `mw_ip` per `axi_interconnect` trovava solo la versione `1.7`
+  (marcata "Discontinued" dal catalogo IP di questa installazione, bloccata da
+  `create_bd_cell`); fissata a `2.1` (la stessa del reference design ufficiale
+  MathWorks) senza passare da `get_ipdefs`. Dettagli e log in
+  [`24_REFERENCE_DESIGN.md` §24.6bis](24_REFERENCE_DESIGN.md).
 
 ### P12bis · Costruzione del reference design *(Dario, Vivado 2022.1)*
 Il design è scritto: qui si tratta di eseguirlo. Tre comandi, in ordine, con un
 esito atteso ciascuno — vedi [`24_REFERENCE_DESIGN` §24.5](24_REFERENCE_DESIGN.md).
-1. `validate_refdesign()` → deve dire `completa`;
-2. HDL Workflow Advisor su `soc_wrapper_fpga`: *Digilent PYNQ-Z1* fra le target
+1. ✅ *(31/07)* `validate_refdesign()` → dice `completa` (dopo il fix di §24.6bis);
+2. ⬜ HDL Workflow Advisor su `soc_wrapper_fpga`: *Digilent PYNQ-Z1* fra le target
    platform e *Default system (AXI4-Lite)* fra i reference design (chiude anche
-   G11b, la conferma manuale rimasta da P11);
-3. il block design si costruisce senza errori critici.
+   G11b, la conferma manuale rimasta da P11) — non ancora fatto;
+3. ✅ il block design si costruisce senza errori critici (stesso test del
+   punto 1).
 - **Gate G12b**: i tre punti sopra.
 - Attesi e da non "correggere": due CRITICAL WARNING sul DDR
   (`PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_2/3` negativi). Vengono dal `preset.xml`
@@ -162,7 +167,7 @@ Tenere un ILA su FSM, handshake e un valore del datapath **già nella prima buil
 | G11 | plugin PYNQ-Z1: registrazione + pin verificati | ✅ T14 |
 | G11b | PYNQ-Z1 nel menu del Workflow Advisor | ⬜ conferma manuale |
 | G12a | i quattro file del reference design concordano | ✅ T15 |
-| G12b | il block design si costruisce e valida | ⬜ Dario (Vivado 2022.1) |
+| G12b | il block design si costruisce e valida | ✅ *(31/07, Dario, Vivado 2022.1)* |
 | G13 | bitstream, slack positivo su design con registri | ⬜ Dario |
 | G15 | 100 % match on-board + prima lettura di `CYCLES` | ⬜ board |
 | G16 | tutto rigenerabile, costanti sostituite da misure | ⬜ |

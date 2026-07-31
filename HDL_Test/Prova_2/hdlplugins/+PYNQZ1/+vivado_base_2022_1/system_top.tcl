@@ -49,6 +49,22 @@ set script_folder [_tcl::get_script_folder]
 # Risoluzione delle versioni IP.
 # ---------------------------------------------------------------------------
 proc mw_ip {name} {
+    if {$name eq "axi_interconnect"} {
+        # Versione fissata a 2.1, non risolta dinamicamente: e' la stessa
+        # versione che usa il reference design UFFICIALE MathWorks
+        # (+ZedBoard/+vivado_base_2022_1/system_top.tcl riga 188), che la
+        # cabla allo stesso modo senza passare da get_ipdefs. La
+        # risoluzione dinamica sotto (wildcard su get_ipdefs) su questa
+        # installazione Vivado 2022.1 trova SOLO la versione 1.7, che il
+        # catalogo IP marca "Discontinued" per tutte le famiglie e
+        # create_bd_cell rifiuta con "Found unsupported IP" (BD 5-313) --
+        # anche se i file della 2.1 esistono su disco
+        # (data/ip/xilinx/axi_interconnect_v2_1), get_ipdefs non li elenca
+        # (difetto del catalogo locale, non assenza reale: istanziazione
+        # diretta della 2.1 riuscita, reference design intero validato con
+        # successo dopo questo fix). Verificato 31/07/2026.
+        return xilinx.com:ip:axi_interconnect:2.1
+    }
     set defs [lsort [get_ipdefs -quiet xilinx.com:ip:${name}:*]]
     if {[llength $defs] == 0} {
         if {$name eq "axi_interconnect"} {
