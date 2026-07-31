@@ -20,9 +20,10 @@ function V = validate_refdesign(vivadoExe, verbose)
 %   Un esito 'parziale' NON e' un successo. La funzione lo restituisce senza
 %   sollevare errore, ma V.esito lo dice e vengono stampate le cause osservate.
 %
-%   Cause viste finora, per riferimento — NON sono le uniche possibili:
-%     Vivado 2026.1 : 'axi_interconnect' non esiste piu' (rimosso dopo la 2024.1)
-%     Vivado 2022.1 : 'axi_interconnect:2.1' su disco ma non in catalogo
+%   Causa vista finora, per riferimento — NON e' l'unica possibile:
+%     'axi_interconnect:2.1' presente su disco ma NON elencata da get_ipdefs.
+%     Succede sia su 2022.1 sia su 2026.1. Non e' assenza dell'IP: si istanzia
+%     lo stesso e il design valida (docs/11_NOTE_API §16).
 %   Vedi docs\24_REFERENCE_DESIGN §24.7.
 
     if nargin < 2; verbose = true; end

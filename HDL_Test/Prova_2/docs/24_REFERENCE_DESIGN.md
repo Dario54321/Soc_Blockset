@@ -75,12 +75,15 @@ trova nulla. In una prima stesura di [`23_BOARD_PYNQZ1`](23_BOARD_PYNQZ1.md)
 avevo scritto la forma maiuscola. `check_refdesign` ora deriva la stringa
 attesa da `board.xml` applicando il minuscolo, e confronta.
 
-**`axi_interconnect` non esiste più dalla 2026.1.** Nella Vivado 2026.1
-installata su questa macchina resta solo `smartconnect`. Ma **tutti** i
-reference design MathWorks, incluso quello per la 2024.1, usano ancora
-`axi_interconnect:2.1`, e nessuno dichiara versioni oltre la 2024.1. Quindi
-l'IP giusto per il bersaglio è quello, e la 2026.1 non è una versione su cui
-questo flusso girerebbe comunque.
+**~~`axi_interconnect` non esiste più dalla 2026.1.~~ — SBAGLIATO, vedi §24.7.**
+Questa conclusione era scritta qui il 29/07 sulla base di `get_ipdefs`, che
+restituisce vuoto. È falsa: l'IP c'è su disco, si istanzia, e il design valida
+anche su Vivado 2026.1. `get_ipdefs` non è una prova di esistenza
+([`11_NOTE_API` §16](11_NOTE_API.md)).
+
+Resta vero che l'IP giusto è **`axi_interconnect:2.1`**, quello di tutti i
+reference design MathWorks, e che **HDL Coder R2026a supporta Vivado fino alla
+2024.1** — ma quel limite viene dal prodotto MathWorks, non dal block design.
 
 **Il clock è 100 MHz, non 50.** La ZedBoard usa 50 MHz sul clock del core. Qui
 serve 100, perché è il clock su cui è costruito tutto il budget
@@ -167,6 +170,53 @@ Punti su cui aspettarsi attrito, tutti già noti e nessuno verificato da noi:
   silicio sulla ZedBoard. È l'intervallo offerto nel Workflow Advisor, **non**
   una promessa di chiusura temporale: quella la dice il report di timing.
 
+## 24.6bis — G12b risolto (31/07/2026): `axi_interconnect` "Discontinued" sulla 2.1 di questa istanza Vivado 2022.1
+
+`validate_refdesign()` su questa macchina (Vivado 2022.1 reale, non 2026.1) dava
+`esito='parziale'` anche **dopo** aver installato i board file corretti (preset
+applicato, `ddrPart` giusto — quindi non era più il problema del §24.5). Causa
+reale, dal log completo (non dal riassunto stampato per il ramo `parziale`, che
+è testo fisso pensato per la 2026.1 e qui fuorviante):
+
+```
+ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7' in design.
+```
+
+**`mw_ip` (risoluzione dinamica via `get_ipdefs` con wildcard) trova solo la
+versione `1.7`**, che il catalogo IP di questa installazione marca
+`Discontinued` per **tutte** le famiglie (verificato via
+`get_property SUPPORTED_FAMILIES`) — non solo zynq, non è quindi (solo) il
+"rimosso dopo la 2024.1" ipotizzato sopra. `create_bd_cell` rifiuta di
+istanziare un IP così marcato, a prescindere dalla parte target: confermato
+isolando il problema (`axi_gpio`/`clk_wiz` si istanziano senza problemi sulla
+stessa parte, quindi non è un blocco della parte).
+
+**La versione `2.1`** — quella che usa il reference design **ufficiale
+MathWorks** (`+ZedBoard/+vivado_base_2022_1/system_top.tcl` riga 188, cablata
+senza `get_ipdefs`) — **esiste realmente su disco**
+(`data/ip/xilinx/axi_interconnect_v2_1/component.xml`, `name=axi_interconnect
+version=2.1`), ma `get_ipdefs` (anche con VLNV esatto, anche dopo
+`update_ip_catalog -rebuild`, anche aggiungendola come `ip_repo_paths`
+esplicito — Vivado la ignora perché "already part of the Xilinx supplied IP
+repositories") **non la elenca**. Solo l'istanziazione **diretta** per VLNV
+(`create_bd_cell -vlnv xilinx.com:ip:axi_interconnect:2.1`, bypassando
+`get_ipdefs`) funziona — verificato isolatamente prima di toccare il file
+reale.
+
+**Fix applicato**: `mw_ip` ora restituisce `xilinx.com:ip:axi_interconnect:2.1`
+per un valore fisso quando `name eq "axi_interconnect"`, **senza** passare
+dalla ricerca dinamica — esattamente come fa il file MathWorks originale.
+Nessun'altra chiamata a `mw_ip` (per altri IP) è toccata: il meccanismo
+dinamico resta per tutto il resto, dove ha sempre funzionato.
+
+**`validate_refdesign()` dopo il fix**: `esito='completa'` (confermato). G12b
+chiuso.
+
+> Nota per chi legge questo su una macchina diversa: se lì il catalogo IP
+> espone correttamente la 2.1 in `get_ipdefs`, il fix è comunque innocuo (la
+> restituisce comunque, solo non dinamicamente) — non introduce una
+> regressione su installazioni dove il problema originale non si presenta.
+
 ## 24.6 Un errore in cui sono caduto, per chi userà il banco
 
 La prima versione di `validate_refdesign` ha dichiarato **`completa`** una
@@ -228,20 +278,30 @@ dopo con un errore che non nomina la causa.
 
 **Scegliere una versione di IP è una configurazione, non un dettaglio da
 dedurre.** Le versioni ora stanno in una tabella esplicita (`MW_IP_VER` in cima
-a `system_top.tcl`), sono quelle di MathWorks, e se una manca il file si ferma
-subito dicendo cosa c'è invece:
-
-```
-MW_PYNQ: l'IP 'xilinx.com:ip:axi_interconnect:2.1' non e' nel catalogo di Vivado 2022.1.
-  In catalogo c'e' invece: xilinx.com:ip:axi_interconnect:1.7
-  NON viene sostituita automaticamente: la versione e' una scelta di progetto.
-  Note: ... provare 'update_ip_catalog -rebuild' e verificare la licenza.
-```
+a `system_top.tcl`) e sono quelle di MathWorks.
 
 > Nota sul difetto latente scoperto verificando: l'ordinamento era
 > **lessicografico**, quindi fra `1.9` e `1.10` avrebbe scelto `1.9`. Non è il
 > problema incontrato, ma sarebbe arrivato. Con le versioni fissate non esiste
 > più.
+
+### E una seconda correzione, perché la prima era ancora sbagliata
+
+La prima versione di questa correzione fissava sì le versioni, ma **verificava
+con `get_ipdefs` che l'IP fosse in catalogo prima di usarlo**, fermandosi con un
+messaggio se non c'era. Sembrava prudente. Su quella stessa macchina **avrebbe
+bloccato un design perfettamente costruibile**: `get_ipdefs` non elenca
+`axi_interconnect:2.1`, ma `create_bd_cell` la istanzia senza alcun problema e
+il design intero valida ([`11_NOTE_API` §16](11_NOTE_API.md)).
+
+Il catalogo IP **non è una fonte affidabile di esistenza**. Ora `mw_ip` usa la
+versione fissata e basta; `get_ipdefs` resta solo come **diagnostica** — se non
+elenca ciò che stiamo per istanziare lo dice, e se poi `create_bd_cell` fallisce
+quel messaggio è il contesto per capire perché. Avvisa, non sbarra.
+
+È la stessa lezione di §24.6 in un'altra forma: uno strumento di verifica che
+non è stato provato sul caso vero rischia di bloccare il caso giusto invece di
+prendere quello sbagliato.
 
 ### Il banco stampava una spiegazione, non una causa
 
@@ -255,9 +315,12 @@ plausibile al posto del dato. Ora il banco riporta la **causa osservata** —
 l'errore del tcl per intero e le righe `ERROR`/`CRITICAL WARNING` del log — e
 non ipotizza nulla.
 
-### Passo concreto per chi riprende
+### Esito: G12b chiuso
 
-Su quella installazione: `update_ip_catalog -rebuild`, poi verificare che
-`get_ipdefs xilinx.com:ip:axi_interconnect:*` elenchi la **2.1**; se non compare,
-è licenza o catalogo. Poi `validate_refdesign()`, che ora dice esattamente cosa
-manca invece di una spiegazione preconfezionata.
+Con `axi_interconnect` fissato a `2.1` e istanziato direttamente,
+`validate_refdesign()` su Vivado 2022.1 reale dà **`esito='completa'`,
+`designValidato=1`**. Il reference design non è più solo scritto: **si costruisce
+e valida**. Log e dettagli in §24.6bis.
+
+Resta aperto il punto 2 di P12bis: la conferma manuale che *Digilent PYNQ-Z1*
+compaia nel menu del Workflow Advisor (gate G11b).

@@ -19,8 +19,9 @@ function hRD = plugin_rd()
     hRD.ReferenceDesignName = 'Default system (AXI4-Lite)';
     hRD.BoardName           = 'Digilent PYNQ-Z1';
 
-    % Non la 2026.1: 'axi_interconnect' e' stato rimosso dopo la 2024.1, e
-    % queste sono comunque le uniche versioni supportate da HDL Coder R2026a.
+    % Queste sono le versioni supportate da HDL Coder R2026a (elenco verificato
+    % nel prodotto). La 2026.1 e' esclusa per quel motivo, NON perche' il block
+    % design non ci si costruisca: ci si costruisce (11_NOTE_API §16).
     hRD.SupportedToolVersion = {'2022.1', '2023.1', '2024.1'};
 
     %% --- block design ---------------------------------------------------

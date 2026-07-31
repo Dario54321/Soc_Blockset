@@ -645,3 +645,45 @@ buttato via esattamente il risultato dell'export.
 > R7: *verificare l'artefatto, non l'intenzione*. Qui il messaggio "tutti
 > compatibili" era vero al momento in cui veniva stampato e falso trenta secondi
 > dopo. Nessuno se n'è accorto per otto commit.
+
+---
+
+## 16. `get_ipdefs` non è una prova di esistenza di un IP
+
+> `ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7' in design.`
+
+Scoperto eseguendo il reference design su una Vivado **2022.1 reale**, dove il
+comportamento è diverso da quello che si osserva sulle installazioni recenti.
+
+**I fatti, verificati su quella macchina:**
+
+| | |
+|---|---|
+| `get_ipdefs xilinx.com:ip:axi_interconnect:*` | elenca **solo la 1.7** |
+| la 1.7 nel catalogo | marcata **"Discontinued"** per tutte le famiglie → `create_bd_cell` la rifiuta |
+| la 2.1 su disco | **c'è** (`data/ip/xilinx/axi_interconnect_v2_1`) |
+| la 2.1 in `get_ipdefs` | **non compare**, per nessuna via provata |
+| la 2.1 istanziata direttamente per VLNV | **funziona**, e il design intero valida |
+
+Quindi: **un IP può essere perfettamente istanziabile e non comparire in
+`get_ipdefs`.** Il catalogo può essere incompleto rispetto a ciò che il tool
+accetta davvero.
+
+**Due conseguenze, entrambe pagate:**
+
+1. *Risolvere* una versione da `get_ipdefs` (prendere "la più alta disponibile")
+   sceglie in silenzio la versione sbagliata quando quella giusta non è elencata.
+   Le versioni degli IP si **fissano**, come fa il reference design MathWorks.
+2. *Verificare* con `get_ipdefs` prima di istanziare — che sembra la correzione
+   prudente al punto 1 — **blocca un design costruibile**. È l'errore che ho
+   commesso correggendo il primo: un controllo mai provato sul caso vero.
+
+**Regola che ne esce**: `get_ipdefs` va usato come **diagnostica**, mai come
+cancello. Si istanzia la versione decisa; se il catalogo non la elenca lo si
+segnala, e se `create_bd_cell` fallisce quel messaggio è il contesto per capire
+perché.
+
+> Vale la pena notare *come* è emerso: la prima diagnosi plausibile era "licenza
+> o catalogo da rigenerare", e sarebbe stata una spiegazione ragionevole su cui
+> fermarsi. La causa vera — "Discontinued" sulla 1.7, e la 2.1 istanziabile ma
+> non elencata — è venuta fuori solo provando a istanziarla lo stesso.

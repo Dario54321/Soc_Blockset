@@ -53,9 +53,13 @@ function R = check_refdesign(verbose)
     assert(strcmp(hRD.BoardName, boardName), 'checkRd:rdBoardMismatch', ...
         'plugin_rd dichiara la board ''%s'', la registrazione ''%s''.', hRD.BoardName, boardName);
 
+    % HDL Coder R2026a supporta fino alla 2024.1: e' un vincolo del PRODOTTO,
+    % verificato nel suo elenco di downstream tool. Non dipende dal fatto che il
+    % block design si costruisca — su Vivado 2026.1 si costruisce e valida
+    % (docs\11_NOTE_API §16). Le due cose erano state confuse.
     assert(~any(strcmp(hRD.SupportedToolVersion, '2026.1')), 'checkRd:vivado2026', ...
-        ['Dichiarata la 2026.1 fra le versioni supportate: non lo e''.\n' ...
-         '''axi_interconnect'' e'' stato rimosso dopo la 2024.1.']);
+        ['Dichiarata la 2026.1 fra le versioni supportate da HDL Coder: non lo e''.\n' ...
+         'Il flusso IP Core Generation di R2026a si ferma alla 2024.1.']);
 
     R.boardName    = boardName;
     R.toolVersions = hRD.SupportedToolVersion;

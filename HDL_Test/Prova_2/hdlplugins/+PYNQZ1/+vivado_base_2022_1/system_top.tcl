@@ -27,10 +27,13 @@
 #      costruzione.
 #
 # VERSIONE DI VIVADO
-#   Serve la 2022.1 o la 2024.1 — le uniche supportate da HDL Coder R2026a.
-#   Non e' una preferenza: 'axi_interconnect' e' stato RIMOSSO dopo la 2024.1
-#   (nella 2026.1 esiste solo 'smartconnect'), e tutti i reference design
-#   MathWorks, incluso quello per la 2024.1, lo usano ancora.
+#   Serve la 2022.1 o la 2024.1: sono le uniche versioni supportate da HDL
+#   Coder R2026a (elenco verificato nel prodotto, non una preferenza).
+#   NOTA: questo tcl in se' si costruisce e valida anche su Vivado 2026.1 —
+#   verificato il 31/07. Una prima analisi aveva concluso che 'axi_interconnect'
+#   fosse stato rimosso dopo la 2024.1, ma era sbagliata: l'IP c'e' su disco e
+#   si istanzia, e' solo get_ipdefs a non elencarlo (11_NOTE_API §16). Il
+#   vincolo sulla versione di Vivado viene da HDL Coder, non da questo file.
 #
 # Vedi docs\24_REFERENCE_DESIGN.md.
 ################################################################
@@ -58,8 +61,10 @@ set script_folder [_tcl::get_script_folder]
 # catalogo), lo script ha istanziato la 1.7 senza dire nulla, e il progetto e'
 # morto duecento righe dopo con un opaco:
 #     ERROR: [BD 5-313] Found unsupported IP 'xilinx.com:ip:axi_interconnect:1.7'
-# Scegliere una versione e' una CONFIGURAZIONE: se non c'e' quella giusta si
-# deve fermare dicendo cosa manca, non ripiegare in silenzio su un'altra.
+# Scegliere una versione e' una CONFIGURAZIONE, non qualcosa da dedurre a
+# runtime: si usa quella fissata e non si ripiega mai in silenzio su un'altra.
+# Nota (31/07): NON si verifica prima con get_ipdefs, perche' su una 2022.1
+# reale quel comando non elenca la 2.1 che pero' si istanzia benissimo.
 # Vedi docs\24_REFERENCE_DESIGN §24.7.
 # ---------------------------------------------------------------------------
 array set MW_IP_VER {
@@ -78,27 +83,26 @@ proc mw_ip {name} {
     }
     set want "xilinx.com:ip:${name}:$MW_IP_VER($name)"
 
-    if {[llength [get_ipdefs -quiet $want]] == 1} {
-        puts "  \[mw_ip\] ${name} -> ${want}"
-        return $want
+    # NON si usa get_ipdefs come prova di esistenza prima di istanziare.
+    # Verificato il 31/07/2026 su una Vivado 2022.1 reale: get_ipdefs NON elenca
+    # 'axi_interconnect:2.1' benche' create_bd_cell la istanzi senza problemi e
+    # il design intero validi. Un controllo di esistenza basato su get_ipdefs
+    # bloccherebbe quindi un design perfettamente costruibile.
+    # get_ipdefs resta utile come DIAGNOSTICA, non come cancello.
+    if {[llength [get_ipdefs -quiet $want]] != 1} {
+        set avail [get_ipdefs -quiet xilinx.com:ip:${name}:*]
+        puts "  \[mw_ip\] ATTENZIONE: '$want' non e' elencato da get_ipdefs."
+        if {[llength $avail] == 0} {
+            puts "  \[mw_ip\]   il catalogo non elenca alcuna versione di '$name'."
+        } else {
+            puts "  \[mw_ip\]   il catalogo elenca invece: $avail"
+        }
+        puts "  \[mw_ip\]   si prova comunque: il catalogo puo' essere incompleto."
+        puts "  \[mw_ip\]   se create_bd_cell fallisce, la causa e' qui sopra."
     }
 
-    # Non c'e'. Si dice cosa c'e' invece, perche' e' l'informazione che serve.
-    set avail [get_ipdefs -quiet xilinx.com:ip:${name}:*]
-    set msg "MW_PYNQ: l'IP '$want' non e' nel catalogo di Vivado [version -short]."
-    if {[llength $avail] == 0} {
-        append msg "\n  Nessuna versione di '$name' e' in catalogo."
-    } else {
-        append msg "\n  In catalogo c'e' invece: $avail"
-        append msg "\n  NON viene sostituita automaticamente: la versione e' una scelta di progetto."
-    }
-    if {$name eq "axi_interconnect"} {
-        append msg "\n  Note: 'axi_interconnect' e' stato RIMOSSO dopo la 2024.1 (resta 'smartconnect'),"
-        append msg "\n  e su alcune installazioni 2022.1 la 2.1 e' su disco ma non in catalogo."
-        append msg "\n  In quel caso provare 'update_ip_catalog -rebuild' e verificare la licenza."
-    }
-    append msg "\n  Versioni di Vivado supportate da questo reference design: vedi plugin_rd.m."
-    error $msg
+    puts "  \[mw_ip\] ${name} -> ${want}"
+    return $want
 }
 
 variable design_name

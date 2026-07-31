@@ -46,7 +46,7 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | P9 · wrapper: CSR, FSM start/done, watchdog, contatore | ✅ gate G9 (T12), 3 mutazioni catturate |
 | P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
 | P11 · board plugin PYNQ-Z1 | ✅ gate G11 (T14) → [`docs/23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) — resta una conferma manuale |
-| P12 · reference design | ✅ scritto · 🔄 **primo giro su Vivado 2022.1 reale fatto** (30/07): board file riconosciuti, preset applicato, DDR3 vero. Bloccato su `axi_interconnect` in catalogo → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.7 |
+| P12 · reference design | ✅ **costruito e validato su Vivado 2022.1 reale** *(31/07)*: `validate_refdesign()` dà `completa`, gate **G12b chiuso** → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.6bis e §24.7 |
 | P13 · bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
 | P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
 
