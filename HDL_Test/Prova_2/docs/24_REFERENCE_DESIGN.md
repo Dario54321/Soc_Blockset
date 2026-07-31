@@ -2,7 +2,7 @@
 
 > Passo P12, **scritto qui, da costruire da chi ha Vivado 2022.1**.
 > Verificabile con `check_refdesign` (coerenza) e `validate_refdesign` (Vivado).
-> Ultima esecuzione: 2026-07-31 — primo IP core reale generato (§24.8).
+> Ultima esecuzione: 2026-07-31 — primo bitstream reale costruito, G13 chiuso (§24.8).
 
 ## 24.1 Che cos'è
 
@@ -172,9 +172,20 @@ validazione del design.
    esito: HDL Coder 23.2, VHDL, `Digilent PYNQ-Z1`, `xc7z020clg400-1`,
    100 MHz, workflow *IP Core Generation*, `soc_wrapp_ip` v1.0. Report
    completo in §24.8.
-6. ⬅ **SI RIPARTE DA QUI.** Costruire il bitstream (fase "4. Embedded System
-   Integration" nel Workflow Advisor, P13) — non ancora tentato, né in GUI né
-   da script.
+6. ~~Costruire il bitstream (fase "4. Embedded System Integration" nel
+   Workflow Advisor, P13)~~ ✅ **31/07 — G13 chiuso, primo bitstream reale
+   di Prova_2 sul `clg400` vero**. Fatto da Dario in GUI, da
+   `D:\SocBuilderBuild\Prova_2_build` (serviva un percorso senza spazi, vedi
+   §24.8 per il perché e per il fix). File:
+   `D:\SocBuilderBuild\prova2_vivado_prj\vivado_ip_prj\vivado_prj.runs\impl_1\system_top_wrapper.bit`
+   (~4 MB, timing chiuso — non rinominato `..._timingfailure.bit`).
+7. ⬅ **SI RIPARTE DA QUI.** Programmare la scheda reale — due tentativi, due
+   cause distinte, nessuna delle due nel bitstream in sé: (a) via
+   HDL Workflow Advisor (4.4 Program Target Device, metodo SSH/IP), fallito
+   per assenza di `dtc` su questa macchina; (b) via JTAG diretto
+   (`vivado_download.tcl`), fallito perché la scheda non risultava collegata
+   al PC. Servono entrambi: installare `dtc` (es. via WSL) **e** collegare
+   fisicamente la PYNQ-Z1. Vedi §24.8 per la diagnosi completa.
 
 Punti su cui aspettarsi attrito, tutti già noti e nessuno verificato da noi:
 
@@ -537,3 +548,61 @@ Vivado 2022.1 reale:
 
   Resta da fare: **costruire il bitstream** (fase "4. Embedded System
   Integration"), non ancora eseguita al momento di scrivere questo paragrafo.
+
+### G13 chiuso — bitstream reale costruito (Dario, 31/07/2026)
+
+**Problema d'ambiente serio, non di HDL Coder**: **4.1 Create Project** falliva
+con *"contains white space in project path"*, sempre citando
+`C:\Users\lenovo GAME\Desktop\Prove\HDL_Test\Prova_2` — lo spazio è nel nome
+del profilo Windows dell'utente. Cambiare il campo GUI "Project folder" **non
+basta**: il controllo guarda la *current directory di MATLAB* (`pwd`), non
+quel campo. Verificato empiricamente che una **junction NTFS non risolve il
+problema**: `cd` in una junction senza spazi, poi `disp(pwd)` in MATLAB
+restituisce comunque il percorso fisico reale (con lo spazio) — MATLAB risolve
+le junction, non le tratta come alias opachi.
+
+**Fix reale**: copiare fisicamente `models/`, `hdlplugins/`, `scripts/` in un
+percorso senza spazi (`D:\SocBuilderBuild\Prova_2_build\`), **dopo** aver
+fatto salvare a Dario il modello nella sua sessione GUI live (`Ctrl+S`/
+`save_system`) — la configurazione HDL Coder (piattaforma, reference design,
+interfacce) è tutta nei parametri del modello, verificato che sopravviva alla
+copia (`hdlget_param`/`hdlget_param` per-porta, stessi valori, stessa mappa
+indirizzi). Poi un secondo errore, *"Duplicate plugin path... found from two
+registration functions"*: la vecchia `hdlplugins` (dal path della sessione)
+e la nuova coesistevano su MATLAB path — risolto con `rmpath` sulla vecchia
+più `sl_refresh_customizations` (necessario: la cache di registrazione plugin
+di Simulink non si aggiorna da sola solo togliendo dal path).
+
+**Risultato, da `D:\SocBuilderBuild\Prova_2_build`**: 4.1 Create Project → 4.2
+Generate Software Interface → **4.3 Build FPGA Bitstream, tutti ✅**. Bitstream
+reale confermato su disco:
+`D:\SocBuilderBuild\prova2_vivado_prj\vivado_ip_prj\vivado_prj.runs\impl_1\system_top_wrapper.bit`
+(~4 MB, non `..._timingfailure.bit` — quindi timing chiuso, non solo "si è
+costruito"). **Primo bitstream reale di Prova_2 sul silicio vero (`clg400`)**,
+diverso dal bitstream del filone A (`prove_2/MatMul_*`, quello era su ZedBoard
+proxy via SoC Builder).
+
+**4.4 Program Target Device: fallito, causa diagnosticata, non bloccante.**
+Log troncato ("Device tree compilation failed with message:" e basta).
+Verificato (`where dtc`/`where dtc.exe`, ricerca in tutto l'albero Vivado
+2022.1): **nessun `dtc` (device tree compiler) installato su questa macchina**
+— non solo assente dal path, assente proprio dall'installazione Vivado.
+`dtc` viene normalmente da un toolchain PetaLinux/Linux, non è incluso in
+Vivado su Windows. Il task fallisce prima ancora di provare la connessione
+SSH alla scheda (`Programming method: Download`, IP/SSH — non JTAG, come
+inizialmente ipotizzato in §24.5). **Non blocca il bitstream**, che resta
+valido e utilizzabile indipendentemente da questo passo; da riprendere
+quando serve davvero programmare la scheda (serve installare `dtc`, es. via
+WSL o un binario Windows precompilato — non ancora fatto, non urgente).
+
+**Tentativo alternativo, via JTAG diretto**: bypassando l'interfaccia
+software (che richiede `dtc`), un tentativo con un `.tcl` scritto a mano
+(`vivado_download.tcl`, flusso classico Vivado Hardware Manager —
+`open_hw`/`connect_hw_server`/`get_hw_targets`) fallisce con un errore
+**diverso e indipendente**: `ERROR: [Labtoolstcl 44-199] No matching targets
+found on connected servers: localhost`. Verificato (`Get-PnpDevice` su
+Windows): nessun dispositivo Digilent/FTDI/JTAG risultava collegato al PC nel
+momento del tentativo. Non è quindi (solo) un problema di `dtc`: **anche il
+percorso JTAG, che non ne ha bisogno, resta bloccato finché la scheda non è
+fisicamente collegata**. I due tentativi falliscono per due cause distinte e
+indipendenti — entrambe da risolvere prima di programmare davvero la scheda.

@@ -222,7 +222,7 @@ board conosci".
 
 ## Chi fa cosa adesso
 
-> Aggiornato **31/07/2026**, dopo il primo IP core reale (§24.8).
+> Aggiornato **31/07/2026**, dopo il primo bitstream reale (§24.8).
 
 Tre cose sono pronte a partire e **nessuna delle tre dipende da chi scrive
 codice qui**. Sono elencate per proprietario, non per ordine cronologico.
@@ -230,8 +230,8 @@ codice qui**. Sono elencate per proprietario, non per ordine cronologico.
 ### ▶ Dario — l'unica cosa immediatamente eseguibile
 
 Il reference design **si costruisce e valida**: `validate_refdesign()` dà
-`completa` su Vivado 2022.1 (G12b chiuso il 31/07). Il primo IP core reale è
-già stato generato — in GUI e da script, coppia di conferme indipendenti, vedi
+`completa` su Vivado 2022.1 (G12b chiuso il 31/07). IP core e bitstream reali
+sono stati generati — in GUI e (per l'IP core) anche da script, vedi
 [`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md). Resta un solo passo:
 
 1. ~~Conferma manuale che *Digilent PYNQ-Z1* e *Default system (AXI4-Lite)*
@@ -242,11 +242,16 @@ già stato generato — in GUI e da script, coppia di conferme indipendenti, ved
    v1.0, 100 MHz, VHDL. Riproducibile da script con
    [`scripts/run_ipcore_generation.m`](../scripts/run_ipcore_generation.m),
    senza aprire la GUI.
-3. ⬅ **Resta da fare: il bitstream** su `clg400` vero (P13). Criterio di
-   accettazione e trappole note in [`05_PROCEDURA`](05_PROCEDURA.md) P13 — in
-   particolare: slack positivo su un design **che contiene registri**, e
-   confronto del conteggio `IBUF`/`OBUF` con quello atteso dalle porte. Non
-   ancora tentato, né in GUI né da script.
+3. ~~Il bitstream su `clg400` vero (P13)~~ ✅ **31/07, G13 chiuso** —
+   `system_top_wrapper.bit`, ~4 MB, timing chiuso. Criterio di accettazione
+   in [`05_PROCEDURA`](05_PROCEDURA.md) P13. Il confronto `IBUF`/`OBUF` con
+   quello atteso dalle porte non è stato ancora rifatto esplicitamente su
+   questo bitstream.
+4. ⬅ **Resta da fare: programmare la scheda reale.** Due tentativi falliti
+   per due cause distinte e indipendenti — assenza di `dtc` (device tree
+   compiler) sul metodo SSH/IP della Workflow Advisor, scheda non collegata
+   al PC sul tentativo JTAG diretto. Nessuna delle due tocca la validità del
+   bitstream. Dettagli in §24.8.
 
 Attrito già noto e da **non** scambiare per un problema: due CRITICAL WARNING
 sul DDR all'applicazione del preset. Vengono dai board file Digilent, non da noi

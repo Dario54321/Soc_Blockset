@@ -121,11 +121,16 @@ tutte le porte ai pin.
   fatto in GUI e riprodotto da script
   ([`scripts/run_ipcore_generation.m`](../scripts/run_ipcore_generation.m)) —
   dettagli in [`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md).
-- ⬜ **Gate G13, non ancora tentato**: bitstream costruito; timing con **slack
-  positivo su un design che contiene registri**. Un percorso combinatorio
-  pad-to-pad non è timing closure.
+- ✅ **Gate G13, 31/07**: bitstream reale costruito su `xc7z020clg400-1`
+  (`system_top_wrapper.bit`, ~4 MB, timing chiuso — non rinominato
+  `..._timingfailure.bit`). Dettagli e percorso in
+  [`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md).
 - **Verifica attiva**: confrontare il conteggio `IBUF`/`OBUF` con quello atteso
   dalle porte. È così che in `Prova_1` è emerso il disallineamento di `matB`.
+  Non ancora rifatta esplicitamente su questo bitstream.
+- ⬜ **Resta aperto**: programmare la scheda reale. Due tentativi falliti per
+  due cause distinte (assenza di `dtc`; scheda non collegata al PC) — vedi
+  §24.8. Non blocca la validità del bitstream.
 
 ---
 
@@ -175,7 +180,7 @@ Tenere un ILA su FSM, handshake e un valore del datapath **già nella prima buil
 | G11b | PYNQ-Z1 nel menu del Workflow Advisor | ✅ *(31/07, GUI + script)* |
 | G12a | i quattro file del reference design concordano | ✅ T15 |
 | G12b | il block design si costruisce e valida | ✅ *(31/07, Dario, Vivado 2022.1)* |
-| G13 | bitstream, slack positivo su design con registri | ⬜ Dario |
+| G13 | bitstream, slack positivo su design con registri | ✅ *(31/07, Dario)* |
 | G15 | 100 % match on-board + prima lettura di `CYCLES` | ⬜ board |
 | G16 | tutto rigenerabile, costanti sostituite da misure | ⬜ |
 
