@@ -1,0 +1,8 @@
+/dts-v1/;
+
+// Device tree nodes from reference design plugin
+/include/ "axilite.dtsi"
+
+// Device tree nodes from generated IP core soc_wrapp_ip
+/include/ "soc_wrapp_ip.dtsi"
+
