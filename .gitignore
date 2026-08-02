@@ -16,7 +16,7 @@ vivado_proj/
 webtalk*.log
 
 # HDL Coder intermediate build output (rigenerabile da makehdl/HDL Workflow Advisor)
-hdl_prj/
+hdl_prj*/
 gm_*.slx
 hdlsrc/
 hdlsrc_generated*/
