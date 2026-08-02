@@ -230,9 +230,12 @@ codice qui**. Sono elencate per proprietario, non per ordine cronologico.
 ### ▶ Dario — l'unica cosa immediatamente eseguibile
 
 Il reference design **si costruisce e valida**: `validate_refdesign()` dà
-`completa` su Vivado 2022.1 (G12b chiuso il 31/07). IP core e bitstream reali
-sono stati generati — in GUI e (per l'IP core) anche da script, vedi
-[`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md). Resta un solo passo:
+`completa` su Vivado 2022.1 (G12b chiuso il 31/07). IP core, bitstream e
+**programmazione su hardware reale** sono tutti fatti — in GUI e (per IP
+core/interfacce) anche da script, vedi
+[`24_REFERENCE_DESIGN` §24.8](24_REFERENCE_DESIGN.md) e
+[`HDL_Test/TEST2/README.md`](../../TEST2/README.md) per gli artefatti reali.
+Catena end-to-end chiusa:
 
 1. ~~Conferma manuale che *Digilent PYNQ-Z1* e *Default system (AXI4-Lite)*
    compaiano nell'HDL Workflow Advisor~~ ✅ **31/07**. Non era solo una
@@ -247,11 +250,23 @@ sono stati generati — in GUI e (per l'IP core) anche da script, vedi
    in [`05_PROCEDURA`](05_PROCEDURA.md) P13. Il confronto `IBUF`/`OBUF` con
    quello atteso dalle porte non è stato ancora rifatto esplicitamente su
    questo bitstream.
-4. ⬅ **Resta da fare: programmare la scheda reale.** Due tentativi falliti
-   per due cause distinte e indipendenti — assenza di `dtc` (device tree
-   compiler) sul metodo SSH/IP della Workflow Advisor, scheda non collegata
-   al PC sul tentativo JTAG diretto. Nessuna delle due tocca la validità del
-   bitstream. Dettagli in §24.8.
+4. ~~Programmare la scheda reale~~ ✅ **31/07** — bitstream caricato con
+   successo sulla Pynq-Z1 vera via JTAG (Workflow Advisor 4.4, "Programming
+   method: JTAG", non "Download"/SSH — bypassa sia `dtc` mancante sia la
+   licenza HDL Verifier assente). Log Vivado reale: `End of startup status:
+   HIGH`. Dettagli, inclusa la scoperta del bug whitespace-nel-path che ha
+   richiesto di spostare la build fuori dal repository, in §24.8.
+5. ~~Verifica RTL indipendente~~ ✅ **31/07** — testbench VHDL scritto a mano
+   ([`sim/tb_soc_wrapper_fpga.vhd`](../sim/tb_soc_wrapper_fpga.vhd)), compilato
+   ed eseguito con `xvhdl`/`xelab`/`xsim`: 501 cicli, combacia esattamente col
+   testbench Simulink (`run_wrapper_unit_sim.m`). Gira in simulazione sul PC,
+   **non** sulla scheda — non va confuso con il punto 4.
+6. ⬅ **Resta da fare: il test funzionale sul chip vero** — scrivere `x`,
+   dare `START`, leggere `DONE`/`u` dai registri AXI4-Lite reali via
+   software. Serve `dtc` (percorso SSH/Linux — Dario ha installato WSL ma non
+   ancora `dtc` al suo interno) oppure una licenza HDL Verifier (percorso
+   JTAG AXI Manager). Nessuno dei due disponibile ora. Il bitstream caricato
+   resta valido indipendentemente da questo passo.
 
 Attrito già noto e da **non** scambiare per un problema: due CRITICAL WARNING
 sul DDR all'applicazione del preset. Vengono dai board file Digilent, non da noi
@@ -279,7 +294,11 @@ per aritmetica. Serve decisa prima di scrivere il software del PS (P14).
 
 ---
 
-### Dopo, quando c'è la board
+### Ora che la board c'è davvero (non più "dopo")
+
+La Pynq-Z1 è collegata e programmata (punto 4 sopra) — questi passi sono ora
+il fronte attivo, bloccati solo su `dtc`/HDL Verifier (punto 6 sopra), non
+più su "non abbiamo la scheda":
 
 5. **Bring-up**, cinque passi senza saltarne nessuno: `ID_VER` → registro R/W →
    un vettore noto → **la prima lettura reale di `CYCLES`**. È lì che si scopre
@@ -294,6 +313,9 @@ per aritmetica. Serve decisa prima di scrivere il software del PS (P14).
 |---|---|
 | Wrapper AXI4-Lite su registri | ✅ 28–29/07 |
 | Board plugin PYNQ-Z1 | ✅ 29/07 |
+| IP core + bitstream reali generati | ✅ 31/07 |
+| **Bitstream programmato su Pynq-Z1 vera (via JTAG)** | ✅ **31/07** |
+| Testbench RTL indipendente (VHDL, `xsim`) — combacia col modello | ✅ 31/07 |
 | Reference design scritto | ✅ 29/07 |
 | **Reference design validato su Vivado reale (G12b)** | ✅ **31/07** |
 
