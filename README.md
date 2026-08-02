@@ -44,10 +44,10 @@ Tre scelte attraversano tutto il progetto e conviene averle presenti leggendo:
 
 | | **A — apprendimento e misura** | **B — il trasporto per l'MPC** |
 |---|---|---|
-| dove | `Prova_1.slx`, `HDL_Test/`, `docs/` | `HDL_Test/Prova_2/` |
+| dove | `Prova_1.slx`, `HDL_Test/`, `docs/` | `HDL_Test/Prova_2/`, bring-up in `HDL_Test/TEST2/` |
 | cosa | modello didattico via AXI4-Stream, misure Vivado reali, toolchain ARM, esplorazione SoC Builder | contratto d'interfaccia e wrapper AXI4-Lite verso il blocco di terzi |
 | flusso | SoC Builder / sintesi Vivado via Tcl | HDL Coder *IP Core Generation* |
-| stato | **concluso** — vale come metodo e come numeri | **attivo** — simulato e verificato, non ancora su hardware |
+| stato | **concluso** — vale come metodo e come numeri | **attivo** — bitstream reale programmato su hardware fisico *(31/07)*; resta il test funzionale via registri |
 
 I due filoni non si contraddicono: dove si sono sovrapposti sono arrivati alla
 stessa conclusione per strade indipendenti.

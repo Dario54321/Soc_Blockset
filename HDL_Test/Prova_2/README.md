@@ -47,8 +47,8 @@ Specifica: [`docs/21_SPEC_WRAPPER.md`](docs/21_SPEC_WRAPPER.md).
 | P10 · studio di sensibilità alla latenza | ✅ gate G10 (T13) → [`docs/22_STUDIO_LATENZA.md`](docs/22_STUDIO_LATENZA.md) |
 | P11 · board plugin PYNQ-Z1 | ✅ gate G11 (T14) → [`docs/23_BOARD_PYNQZ1.md`](docs/23_BOARD_PYNQZ1.md) — resta una conferma manuale |
 | P12 · reference design | ✅ **costruito e validato su Vivado 2022.1 reale** *(31/07)*: `validate_refdesign()` dà `completa`, gate **G12b chiuso** → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.6bis e §24.7 |
-| P13 · bitstream | ⬜ **Dario** (serve Vivado 2022.1) |
-| P14–P16 · software PS, bring-up, misure | ⬜ serve la board |
+| P13 · IP core + bitstream | ✅ **31/07, G13 chiuso** — `soc_wrapp_ip` v1.0 e bitstream reale su `xc7z020clg400-1`, **programmato con successo sull'FPGA fisica via JTAG** → [`docs/24_REFERENCE_DESIGN.md`](docs/24_REFERENCE_DESIGN.md) §24.8, bring-up in [`HDL_Test/TEST2/README.md`](../TEST2/README.md) |
+| P14–P16 · software PS, bring-up, misure | 🔄 **bring-up hardware iniziato** *(31/07, TEST2)*: bitstream carica e configura sulla PL; il test funzionale via registri AXI4-Lite resta da fare (serve `dtc` o licenza HDL Verifier, nessuno dei due disponibile qui) |
 
 ---
 
