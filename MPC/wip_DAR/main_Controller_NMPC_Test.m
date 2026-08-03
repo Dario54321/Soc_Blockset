@@ -14,9 +14,12 @@
 %   3. Il wrapping Simulink.Parameter di Np/Nc è spostato DOPO
 %      GPCADMM_NL_Setup_Test (che vuole Np/Nc come numeri semplici — bug
 %      segnalato a Emanuele, non ancora corretto a monte al 2026-08-03).
-%      Gli oggetti si chiamano NpParam/NcParam: se il modello si aspetta
-%      variabili chiamate esattamente Np/Nc, vanno rinominate di nuovo —
-%      da verificare aprendo il modello.
+%      Gli oggetti risultanti si chiamano ANCORA Np/Nc (non NpParam/NcParam
+%      come in un tentativo precedente): verificato aprendo
+%      CAccEma_v3_NMPC_MPSoC_2023b_Test.slx (è uno zip, ispezionato l'XML)
+%      che due Stateflow chart hanno dati "PARAMETER_DATA" chiamati
+%      esattamente Np/Nc, inizializzati dal workspace base per nome — un
+%      nome diverso non verrebbe trovato dal modello.
 
 clear, bdclose('all'), clc,
 
@@ -39,15 +42,21 @@ NpStr = num2str(Np);
 NpType = regexprep(NpStr,'\.','');
 
 GPCADMM_NL_Setup_Test
+% Da qui in poi Np/Nc sono ancora numeri semplici (GPCADMM_NL_Setup_Test li
+% ricalcola ma non li ri-wrappa) — catturo i valori prima di convertirli.
+NpValue = Np;
+NcValue = Nc;
 
 %% Esposizione a Simulink come parametri tunabili (dopo il setup, non prima)
-NpParam = Simulink.Parameter;
-NpParam.Value = Np;
-NpParam.CoderInfo.StorageClass = 'Auto';
+% Nomi ANCORA Np/Nc: il modello li cerca per nome esatto nel workspace base
+% (Stateflow PARAMETER_DATA, verificato nell'XML del .slx).
+Np = Simulink.Parameter;
+Np.Value = NpValue;
+Np.CoderInfo.StorageClass = 'Auto';
 
-NcParam = Simulink.Parameter;
-NcParam.Value = Nc;
-NcParam.CoderInfo.StorageClass = 'Auto';
+Nc = Simulink.Parameter;
+Nc.Value = NcValue;
+Nc.CoderInfo.StorageClass = 'Auto';
 
 %% STEP 1: Impostazioni di base
 model = 'CAccEma_v3_NMPC_MPSoC_2023b_Test';        % Controller model (copia locale)
