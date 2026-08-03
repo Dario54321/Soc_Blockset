@@ -9,7 +9,7 @@ ad esso. Qui invece si lavora sull'algoritmo stesso.
 
 ## Riferimento
 
-[`Paper_MPC.pdf`](../Paper_MPC.pdf) (radice del repo) — "Fast Constrained
+[`Paper_MPC.pdf`](Paper_MPC.pdf) — "Fast Constrained
 Generalized Predictive Control with ADMM Embedded in an FPGA" (Peccin, Lima,
 Flesch, Normey-Rico, IEEE Latin America Transactions 2020): fonte da cui sono
 prese le formule (GPC + ADMM, GPCADMM). **È materiale metodologico, non la
