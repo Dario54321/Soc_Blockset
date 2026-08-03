@@ -1,39 +1,44 @@
 % This script initializes the CACC example model. It loads necessary control
 % constants, buses adn scenario files required for the referenced model
 %
-% Copia di lavoro di MPC_Emanuele/main_Controller_NMPC.m: l'originale non va
-% toccato (vedi MPC_Emanuele/PROVENIENZA.md). Modifiche rispetto
-% all'originale:
-%   1. addpath verso MPC_Emanuele/ e DataDir valorizzato (riga 45
-%      dell'originale, segnalata come obbligatoria dal README di Emanuele).
-%   2. Il wrapping Simulink.Parameter di Np/Nc è spostato DOPO
-%      GPCADMM_NL_Setup (che vuole Np/Nc come numeri semplici — vedi bug
-%      segnalato a Emanuele, non ancora corretto nel suo repo al 2026-08-03).
-%      Gli oggetti Simulink.Parameter si chiamano ora NpParam/NcParam: se il
-%      modello si aspetta variabili chiamate esattamente Np/Nc in workspace,
-%      vanno rinominate di nuovo — da verificare aprendo il modello.
+% Copia di lavoro di MPC_Emanuele/main_Controller_NMPC.m, autonoma (tutti i
+% file richiamati sono copie locali con suffisso _Test, per evitare conflitti
+% di nome/path con l'originale in MPC_Emanuele/ quando entrambe le cartelle
+% sono sul path di MATLAB). L'originale in MPC_Emanuele/ non va toccato.
+%
+% Modifiche rispetto all'originale:
+%   1. DataDir punta alla copia locale di Traces For Git (riga 45
+%      dell'originale, valore obbligatorio per il README di Emanuele).
+%   2. Chiama GPCADMM_NL_Setup_Test (non GPCADMM_NL_Setup) e carica
+%      TestBenchPar_NL_Test.mat (non l'originale).
+%   3. Il wrapping Simulink.Parameter di Np/Nc è spostato DOPO
+%      GPCADMM_NL_Setup_Test (che vuole Np/Nc come numeri semplici — bug
+%      segnalato a Emanuele, non ancora corretto a monte al 2026-08-03).
+%      Gli oggetti si chiamano NpParam/NcParam: se il modello si aspetta
+%      variabili chiamate esattamente Np/Nc, vanno rinominate di nuovo —
+%      da verificare aprendo il modello.
 
 clear, bdclose('all'), clc,
 
 scriptDir = fileparts(mfilename('fullpath'));
-addpath(fullfile(scriptDir, '..', 'MPC_Emanuele'));
+addpath(scriptDir);
 
 %% Test Bench parameters
-load TestBenchPar_NL.mat
+load TestBenchPar_NL_Test.mat
 % Ts value
 Ts = 0.01;
 NpRange = 15:5:35;
 % for i = 1:numel(NpRange)
 i = numel(NpRange);
-% Np value (numero semplice: GPCADMM_NL_Setup fa N2=Np, N2*0.1 — non regge un
-% Simulink.Parameter, vedi bug segnalato a Emanuele)
+% Np value (numero semplice: GPCADMM_NL_Setup_Test fa N2=Np, N2*0.1 — non
+% regge un Simulink.Parameter, vedi bug segnalato a Emanuele)
 Np = NpRange(i);
-Nc = 3;   % GPCADMM_NL_Setup lo ricalcola comunque (vedi §4.3 del confronto)
+Nc = 3;   % GPCADMM_NL_Setup_Test lo ricalcola comunque (vedi confronto_paper_vs_MPC_Emanuele.md §4.3)
 
 NpStr = num2str(Np);
 NpType = regexprep(NpStr,'\.','');
 
-GPCADMM_NL_Setup
+GPCADMM_NL_Setup_Test
 
 %% Esposizione a Simulink come parametri tunabili (dopo il setup, non prima)
 NpParam = Simulink.Parameter;
@@ -45,9 +50,7 @@ NcParam.Value = Nc;
 NcParam.CoderInfo.StorageClass = 'Auto';
 
 %% STEP 1: Impostazioni di base
-model = 'CAccEma_v3_NMPC_MPSoC_2023b';        % Controller model
-% Rinominato da Emanuele (era 'CAccEma_v3_NMPC_ARM_2023b'), ora presente in
-% MPC_Emanuele/.
+model = 'CAccEma_v3_NMPC_MPSoC_2023b_Test';        % Controller model (copia locale)
 
 % open_system(model);
 load_system(model);
@@ -63,7 +66,7 @@ bdclose(model)
 % Save profilation data externally
 FolderName = append('Np',NpType,'_folder');
 
-DataDir = fullfile(scriptDir, '..', 'MPC_Emanuele', 'Traces For Git');
+DataDir = fullfile(scriptDir, 'Traces For Git');
 
 % Create the folder if it does not exist
 if ~isfolder(DataDir)
