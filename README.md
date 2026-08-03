@@ -94,6 +94,9 @@ prove_2/                  esempio da zero (Register Channel): primo bitstream re
   MatMul_FPGA.slx         lato FPGA, moltiplicazione matriciale 3x3 vera
   MatMul_Top.slx          Top: Register Channel + Register Write/Read, collega i due
 
+MPC/                      l'algoritmo MPC vero (non il trasporto) — vedi MPC/README.md
+  wip_DAR/, wip_CAR/       aree di lavoro individuali, non ancora integrate
+
 HDL_Test/
   FPGA_Prova1.slx                  varianti FPGA-only del modello didattico
   FPGA_Prova1_fixedpoint.slx
