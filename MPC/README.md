@@ -21,9 +21,16 @@ nel paper, non assunto identico.
 
 ```
 MPC/
-  wip_DAR/    lavoro in corso di Dario — non ancora integrato
-  wip_CAR/    lavoro in corso di Carmine — non ancora integrato
+  wip_DAR/       lavoro in corso di Dario — non ancora integrato
+  wip_CAR/       lavoro in corso di Carmine — non ancora integrato
+  MPC_Emanuele/  copia di studio di un repo esterno — vedi PROVENIENZA.md, non modificare
 ```
+
+`MPC_Emanuele/` è un caso a parte rispetto a `wip_*`: non è lavoro nostro,
+è materiale di riferimento importato da un repo esterno (Emanuele, "la repo
+per i tesisti" — CACC/NMPC via GPCADMM). Nessuna licenza dichiarata nella
+fonte: dettagli e limiti d'uso in
+[`MPC_Emanuele/PROVENIENZA.md`](MPC_Emanuele/PROVENIENZA.md).
 
 Le due sottocartelle sono aree di lavoro individuali, isolate perché due
 persone toccano lo stesso argomento in parallelo. Quando qualcosa è stabile
