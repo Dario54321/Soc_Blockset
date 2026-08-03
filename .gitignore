@@ -1,6 +1,7 @@
 # MATLAB/Simulink cache and generated code
 *.slxc
 *.slx.autosave
+*.asv
 slprj/
 
 # Profiling dei task prodotto dal Task Manager di SoC Blockset a ogni

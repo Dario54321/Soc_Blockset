@@ -1,13 +1,7 @@
 % Setup Offline GPCADMM
 % clear, clc
-%
-% Copia di lavoro di MPC_Emanuele/GPCADMM_NL_Setup.m — unica modifica: il
-% file dati caricato è la copia locale _Test. Nessun'altra modifica: chiamato
-% da main_Controller_NMPC_Test.m, che ora passa Np/Nc già come numeri
-% semplici (non più Simulink.Parameter), quindi N2=Np sotto funziona senza
-% bisogno di toccare questo file — vedi bug segnalato a Emanuele.
 %% Load Parameters
-load('TestBenchPar_NL_Test.mat');
+load('TestBenchPar_NL.mat');
 m_ass = m_ego; % mass car, [Kg]
 tau = 0.1;
 
@@ -17,7 +11,7 @@ s_u = 400; % scaling actuation factor (Max Torqu)
 %% MPC control parameters
 sampling_time = Ts; % Sampling time [s]
 N1 = 1; 
-N2 = Np; 
+N2 = Np.Value; 
 if N2*0.1 <= 5
     Nc = 5;
 else
