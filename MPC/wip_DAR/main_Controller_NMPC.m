@@ -2,9 +2,16 @@
 % constants, buses adn scenario files required for the referenced model
 %
 % Copia di lavoro di MPC_Emanuele/main_Controller_NMPC.m: l'originale non va
-% toccato (vedi MPC_Emanuele/PROVENIENZA.md). Uniche modifiche rispetto
-% all'originale: addpath verso MPC_Emanuele/ e DataDir valorizzato (riga 45
-% del file originale, segnalata come obbligatoria dal README di Emanuele).
+% toccato (vedi MPC_Emanuele/PROVENIENZA.md). Modifiche rispetto
+% all'originale:
+%   1. addpath verso MPC_Emanuele/ e DataDir valorizzato (riga 45
+%      dell'originale, segnalata come obbligatoria dal README di Emanuele).
+%   2. Il wrapping Simulink.Parameter di Np/Nc è spostato DOPO
+%      GPCADMM_NL_Setup (che vuole Np/Nc come numeri semplici — vedi bug
+%      segnalato a Emanuele, non ancora corretto nel suo repo al 2026-08-03).
+%      Gli oggetti Simulink.Parameter si chiamano ora NpParam/NcParam: se il
+%      modello si aspetta variabili chiamate esattamente Np/Nc in workspace,
+%      vanno rinominate di nuovo — da verificare aprendo il modello.
 
 clear, bdclose('all'), clc,
 
@@ -18,25 +25,29 @@ Ts = 0.01;
 NpRange = 15:5:35;
 % for i = 1:numel(NpRange)
 i = numel(NpRange);
-% Np value
+% Np value (numero semplice: GPCADMM_NL_Setup fa N2=Np, N2*0.1 — non regge un
+% Simulink.Parameter, vedi bug segnalato a Emanuele)
+Np = NpRange(i);
+Nc = 3;   % GPCADMM_NL_Setup lo ricalcola comunque (vedi §4.3 del confronto)
 
-Np = Simulink.Parameter;
-Np.Value = NpRange(i);
-Np.CoderInfo.StorageClass = 'Auto';
-
-Nc = Simulink.Parameter;
-Nc.Value = 3;
-Nc.CoderInfo.StorageClass = 'Auto';
-
-NpStr = num2str(Np.Value);
+NpStr = num2str(Np);
 NpType = regexprep(NpStr,'\.','');
 
 GPCADMM_NL_Setup
 
+%% Esposizione a Simulink come parametri tunabili (dopo il setup, non prima)
+NpParam = Simulink.Parameter;
+NpParam.Value = Np;
+NpParam.CoderInfo.StorageClass = 'Auto';
+
+NcParam = Simulink.Parameter;
+NcParam.Value = Nc;
+NcParam.CoderInfo.StorageClass = 'Auto';
+
 %% STEP 1: Impostazioni di base
-model = 'CAccEma_v3_NMPC_ARM_2023b';        % Controller model
-% NB: questo modello .slx non è nel repo di Emanuele — va richiesto a lui.
-% Finché non c'è, questo script si ferma qui sotto (load_system fallisce).
+model = 'CAccEma_v3_NMPC_MPSoC_2023b';        % Controller model
+% Rinominato da Emanuele (era 'CAccEma_v3_NMPC_ARM_2023b'), ora presente in
+% MPC_Emanuele/.
 
 % open_system(model);
 load_system(model);

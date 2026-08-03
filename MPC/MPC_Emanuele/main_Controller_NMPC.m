@@ -26,7 +26,7 @@ NpType = regexprep(NpStr,'\.','');
 GPCADMM_NL_Setup
 
 %% STEP 1: Impostazioni di base
-model = 'CAccEma_v3_NMPC_ARM_2023b';        % Controller model
+model = 'CAccEma_v3_NMPC_MPSoC_2023b';        % Controller model
 
 % open_system(model);
 load_system(model);
