@@ -21,10 +21,15 @@ nel paper, non assunto identico.
 
 ```
 MPC/
-  wip_DAR/       lavoro in corso di Dario — non ancora integrato
-  wip_CAR/       lavoro in corso di Carmine — non ancora integrato
-  MPC_Emanuele/  copia di studio di un repo esterno — vedi PROVENIENZA.md, non modificare
+  CONVENZIONI.md  regole di lavoro stabili per questo filone
+  wip_DAR/        lavoro in corso di Dario — non ancora integrato
+  wip_CAR/        lavoro in corso di Carmine — non ancora integrato
+  MPC_Emanuele/   copia di studio di un repo esterno — vedi PROVENIENZA.md, non modificare
 ```
+
+**Un quarto posto, fuori da questo repo, dove succede il lavoro vero ora**:
+vedi [`wip_DAR/RIPRESA_MPC.md`](wip_DAR/RIPRESA_MPC.md) — topologia
+completa, non ripetuta qui.
 
 `MPC_Emanuele/` è un caso a parte rispetto a `wip_*`: non è lavoro nostro,
 è materiale di riferimento importato da un repo esterno (Emanuele, "la repo

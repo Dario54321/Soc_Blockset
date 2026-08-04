@@ -1,70 +1,94 @@
 # wip_DAR — cosa c'è e stato attuale
 
-Solo documentazione: elenco e diagnosi, nessuna modifica ai file. Le
-modifiche le fai tu.
+*(Aggiornato 2026-08-04. Per le convenzioni stabili di questo filone vedi
+[`../CONVENZIONI.md`](../CONVENZIONI.md); questo file è solo lo stato del
+momento.)*
 
 ## Cosa c'è nella cartella
 
 | File | Cosa è |
 |---|---|
-| `README.md` | testo originale di Emanuele (istruzioni di setup), incollato qui com'era |
-| `main_Controller_NMPC.m` | copia identica di `MPC_Emanuele/main_Controller_NMPC.m` — non modificata |
-| `GPCADMM_NL_Setup.m` | copia identica di `MPC_Emanuele/GPCADMM_NL_Setup.m` — non modificata |
-| `CAccEma_v3_NMPC_MPSoC_2023b.slx` | copia identica del modello — non modificata, non ancora aperta |
-| `TestBenchPar_NL.mat` | copia identica dei parametri del banco di prova |
-| `Traces For Git/` | copia identica delle 12 tracce di scenario |
-| `PROVENIENZA.md` | nota sulla provenienza del materiale (repo di Emanuele, nessuna licenza dichiarata) |
+| `README.md` | testo originale di Emanuele (istruzioni di setup) |
+| `main_Controller_NMPC.m` | copia **modificata e funzionante** — vedi sotto |
+| `GPCADMM_NL_Setup.m` | copia **modificata e funzionante** — vedi sotto |
+| `CAccEma_v3_NMPC_MPSoC_2023b.slx` | copia del modello — **non identica a `MPC_Emanuele/`**: hash diverso, quasi certamente perché `main_Controller_NMPC.m` chiama `save_system(model)` durante il run e Simulink lo risalva. Già committata così (`git log` non mostra modifiche dopo). Nessun problema noto causato da questo, solo da sapere. |
+| `TestBenchPar_NL.mat` | copia dei parametri del banco di prova, invariata |
+| `Traces For Git/` | le 12 tracce di scenario originali, **più due file di
+  output prodotti da un run completato** (`AccCmdSingleOut_Dec3.mat`,
+  `ExSimSigDouble.mat`) — non ancora committati, da decidere se versionarli
+  o no |
+| `PROVENIENZA.md` | provenienza del materiale (repo di Emanuele) |
 | `STATO.md` | questo file |
+| `RIPRESA_MPC.md` | router per riprendere il lavoro in una chat nuova |
+| `PROMPT_RIPRESA.txt` | il prompt di ripresa pronto da incollare |
+| `SEGNALAZIONE_EMANUELE.md` | testo pronto della segnalazione del bug `Simulink.Parameter`, non ancora inviato |
 
-Tutto qui è identico a [`MPC_Emanuele/`](../MPC_Emanuele/) — nessun nome
-cambiato, nessuna riga toccata. `MPC_Emanuele/` resta la copia di
-riferimento, non va comunque modificata neanche lei.
+`MPC_Emanuele/` resta la copia di riferimento non modificata — questa
+cartella (`wip_DAR/`) è dove si sperimenta.
 
-## Problemi noti, non risolti — solo diagnosi
+## I tre problemi trovati — stato: risolti qui, verificato con un run completo
 
-### 1. `DataDir` non impostato
+### 1. `DataDir` non impostato — risolto
 
-`main_Controller_NMPC.m` riga 45:
+`main_Controller_NMPC.m` riga 45, valorizzato:
 ```matlab
-% DataDir = %modify this row
+DataDir = 'C:\Users\lenovo GAME\Desktop\Prove\MPC\wip_DAR\Traces For Git';
 ```
-Il README di Emanuele lo segnala come obbligatorio: va valorizzato col
-percorso di `Traces For Git/` (qui, o dove preferisci tenerlo), altrimenti
-lo script si ferma a `cd(DataDir)` poco dopo.
+più un `addpath('C:\Users\lenovo GAME\Desktop\Prove\MPC\wip_DAR')` prima del
+`cd(DataDir)`, altrimenti una seconda `load_system(model)` più avanti nello
+script non trova più il modello (la cartella corrente è cambiata, e non era
+mai stata aggiunta al path in modo permanente).
 
-### 2. Bug `Simulink.Parameter` — riproducibile, causa nota
+### 2. Bug `Simulink.Parameter` — aggirato, non risolto a monte
 
-`main_Controller_NMPC.m` righe 15-21 crea `Np` e `Nc` come oggetti
-`Simulink.Parameter` **prima** di chiamare `GPCADMM_NL_Setup` (riga 26).
-`GPCADMM_NL_Setup` è uno **script**, non una funzione: gira nello stesso
-workspace del chiamante, quindi eredita quell'`Np` come oggetto. Alla riga
-14 del file:
+`main_Controller_NMPC.m` crea ancora `Np`/`Nc` come `Simulink.Parameter`
+**prima** di chiamare `GPCADMM_NL_Setup` (che gira nello stesso workspace,
+essendo uno script). Il fix applicato qui è **dentro `GPCADMM_NL_Setup.m`**,
+riga 14:
 ```matlab
-N2 = Np;        % prende l'oggetto, non il numero — servirebbe Np.Value
-if N2*0.1 <= 5  % qui esplode
+N2 = Np.Value;   % era N2 = Np;
 ```
-Errore che dà:
-```
-Operator '*' is not supported for operands of type 'Simulink.Parameter'.
-Error in GPCADMM_NL_Setup (line 15)
-Error in main_Controller_NMPC (line 26)
-```
-Stesso problema esiste per `Nc`, non ci si arriva perché lo script si ferma
-prima. Segnalato a Emanuele (report preparato in una sessione precedente),
-non ancora corretto a monte.
+Per la sola simulazione (MIL) funziona: dopo questa riga `GPCADMM_NL_Setup`
+riassegna comunque `Np`/`Nc` a numeri semplici (righe successive), quindi il
+wrapping `Simulink.Parameter` iniziale si perde — ma le chart Stateflow del
+modello leggono `Np`/`Nc` dal workspace per nome, e un numero semplice va
+bene quanto un oggetto per la sola simulazione (il wrapping serve solo per
+la generazione di codice, non usata qui). **Non corretto a monte**: nel repo
+di Emanuele (`MPSoC-for-CACC`, branch `Dario`) c'è ancora `N2 = Np;` senza
+`.Value` — testo di segnalazione pronto in
+[`SEGNALAZIONE_EMANUELE.md`](SEGNALAZIONE_EMANUELE.md), **non ancora
+inviato** (Dario ha parlato con Emanuele in call, ma su questo bug specifico
+non è chiaro se sia stato comunicato o dimenticato — verificare prima di
+rimandarla, per non duplicare).
 
-### 3. Vincolo trovato aprendo il modello: `Np`/`Nc` finali devono chiamarsi così
+### 3. Vincolo sui nomi `Np`/`Nc` nel modello — confermato, rispettato
 
-Ho ispezionato `CAccEma_v3_NMPC_MPSoC_2023b.slx` (è un archivio zip,
-apribile senza MATLAB: `python -c "import zipfile; zipfile.ZipFile(...).extractall(...)"`)
-e letto l'XML interno. Due Stateflow chart hanno dati con
-`scope="PARAMETER_DATA"` chiamati **esattamente** `Np` e `Nc`, inizializzati
-dal workspace base per nome esatto. Qualunque fix del punto 2 deve **finire**
-con oggetti `Simulink.Parameter` chiamati proprio `Np`/`Nc` nel workspace
-base — un nome diverso (es. `NpParam`) non verrebbe trovato dal modello.
+Trovato ispezionando l'XML dentro `.slx` (è uno zip): due Stateflow chart si
+aspettano variabili chiamate esattamente `Np`/`Nc` nel workspace base. Il fix
+del punto 2 li lascia con questi nomi (anche se non più `Simulink.Parameter`
+alla fine — vedi sopra), quindi va bene.
 
-Altri nomi che il modello si aspetta dal workspace, verificati con lo stesso
-metodo: `nu`, `Ts`, `G_0`, `F_0`, `R_vincolo`, `rho`, `N_iter` — tutti già
-creati con questi nomi esatti da `GPCADMM_NL_Setup.m` così com'è, nessun
-problema lì. Nessun `InitFcn`/`StartFcn` nel modello che carichi altri file
-per nome.
+## Verificato con un run reale
+
+Con questi tre fix, `main_Controller_NMPC.m` è arrivato in fondo: esistono
+`Traces For Git/AccCmdSingleOut_Dec3.mat` e `Traces For Git/ExSimSigDouble.mat`,
+prodotti dallo script stesso a fine simulazione (`save(...)` alle ultime
+righe). **Non ancora ispezionato il contenuto** (se `AccCmd` ha valori
+sensati, se il controllore si comporta come atteso).
+
+## Cosa NON è ancora stato fatto
+
+- **Il clone `MPSoC-for-CACC-Dario` (fuori da questo repo, vedi
+  [`RIPRESA_MPC.md`](RIPRESA_MPC.md)) è rimasto indietro**: ha il fix
+  dell'Inf di Emanuele (lui l'ha pushato lì direttamente) ma **non** ha
+  ancora il fix `.Value` di `GPCADMM_NL_Setup.m` né `DataDir`/`addpath` —
+  quei fix esistono solo qui, mai portati là. È il prossimo passo naturale.
+  **Attenzione a non copiare il percorso letteralmente**: `DataDir` e
+  `addpath` qui puntano a `...\Soc_Blockset\MPC\wip_DAR\...` — nel clone
+  vanno puntati alla `Traces For Git/` **di quel clone** (che esiste già lì,
+  ha già i suoi 12 file), es.
+  `C:\Users\lenovo GAME\Desktop\MPSoC-for-CACC-Dario\Traces For Git`, non il
+  percorso di questa cartella.
+- Il contenuto di `AccCmdSingleOut_Dec3.mat` non è stato guardato.
+- Non è stato controllato se il bug `Simulink.Parameter` è stato comunicato
+  a Emanuele nella call — vedi `SEGNALAZIONE_EMANUELE.md`.

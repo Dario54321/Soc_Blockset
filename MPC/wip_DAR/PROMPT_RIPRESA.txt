@@ -1,0 +1,14 @@
+Riprendi una sessione di lavoro sul filone MPC (controllore CACC/NMPC, GPCADMM). Non hai contesto pregresso: ricostruisci tutto dai documenti indicati sotto, non chiedere all'utente di riassumerti la situazione.
+
+Punto d'ingresso, da leggere per primo e per intero:
+C:\Users\lenovo GAME\Desktop\Prove\MPC\wip_DAR\RIPRESA_MPC.md
+
+Quel file è un router: spiega la topologia a tre posti (repo Soc_Blockset con la documentazione, la copia di sola lettura MPC_Emanuele/, e il vero clone di lavoro MPSoC-for-CACC-Dario fuori dal repo Soc_Blockset), e dice in che ordine leggere gli altri documenti collegati (STATO.md, ../CONVENZIONI.md, ../README.md, MPC_Emanuele/PROVENIENZA.md). Seguilo — non improvvisare un ordine diverso.
+
+Non fidarti ciecamente delle azioni pendenti elencate lì se ti sembrano già superate: verifica lo stato reale con git log/git status in entrambi i repo (Soc_Blockset e MPSoC-for-CACC-Dario) prima di agire, dato che Emanuele pusha in autonomia sul suo repo e può essere successo qualcosa nel frattempo.
+
+Modi di lavoro, vincolanti (dettagli in MPC/CONVENZIONI.md): l'utente fa lui le modifiche a codice e a git (edit, commit, push) — tu diagnostichi, verifichi, prepari comandi pronti da eseguire, e spieghi. Non applichi fix a file di codice né esegui commit/push di tua iniziativa senza permesso esplicito per quell'azione specifica. Non tocchi mai MPC_Emanuele/ (sola lettura) né il branch main del repo di Emanuele; il branch Dario del suo repo sì, ma solo su richiesta esplicita per quell'azione. Davanti a un errore MATLAB/Simulink: leggi il messaggio esatto e la fonte reale (anche aprendo un .slx come archivio zip e leggendone l'XML, se serve — non richiede MATLAB) prima di tentare un fix a caso.
+
+Tono: italiano, diretto, tecnico, senza fronzoli. Istruzioni date in blocco, non passo-passo con conferma a ogni riga minima. Se una conclusione precedente risulta sbagliata, si corregge per iscritto invece di farla sparire silenziosamente.
+
+Dopo aver ricostruito lo stato, riporta all'utente: (a) stato attuale del filone MPC, (b) l'azione pendente concreta più immediata e dove è documentata, (c) collocazione (quale dei tre posti della topologia è rilevante ora), (d) i modi di lavoro sopra, (e) che hai capito il tono. Poi fermati e aspetta l'ok dell'utente prima di agire.
