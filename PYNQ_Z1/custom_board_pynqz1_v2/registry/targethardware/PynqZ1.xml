@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo version="2.0">
+  <name>Pynq-Z1</name>
+  <preferencename>XLNXZYNQ</preferencename>
+  <baseproductid>16</baseproductid>
+  <deviceid>ARM Cortex-A9</deviceid>
+  <subfamily>ARM Cortex-A</subfamily>
+  <numofcores>2</numofcores>
+  <productionhwdevicetype>ARM Cortex-A9</productionhwdevicetype>
+  <enableprodhwdevicetype>false</enableprodhwdevicetype>
+  <supportsonlysimulation>false</supportsonlysimulation>
+  <toolchain loadcommand="codertarget.zynq.internal.loadandrun">
+    <name>Linaro AArch32 Linux v6.3.1</name>
+    <loadcommandargs>get_param(getModel(hCS), 'Name')</loadcommandargs>
+    <IsLoadCommandMATLABFcn>true</IsLoadCommandMATLABFcn>
+    <loadername>Zynq Linaro Linux Loader</loadername>
+  </toolchain>
+  <parameterinfo>$(TARGET_ROOT)/registry/parameters/PynqZ1.xml</parameterinfo>
+  <attributeinfo>$(TARGET_ROOT)/registry/attributes/XilinxZynqDeployerPynqZ1.xml</attributeinfo>
+  <forwardinginfo>$(TARGET_ROOT)/registry/forwarding/forwarding.xml</forwardinginfo>
+  <rtosinfo>$(MATLAB_ROOT)/toolbox/target/codertarget/rtos/registry/linux.xml</rtosinfo>
+  <esbcompatible>3</esbcompatible>
+  <supportssocbprofiling>0</supportssocbprofiling>
+  <taskmap>
+    <issupported>true</issupported>
+    <useautomap>true</useautomap>
+    <usedynamicevents>false</usedynamicevents>
+  </taskmap>
+  <supportsperipherals>false</supportsperipherals>
+  <supportssocshared>false</supportssocshared>
+  <supportsconnectedio>false</supportsconnectedio>
+  <defaultioblocksmode>deployed</defaultioblocksmode>
+  <supportsdevicedriverapp>false</supportsdevicedriverapp>
+</productinfo>

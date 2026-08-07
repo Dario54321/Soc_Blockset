@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo version="3.0">
+  <name>Xilinx Zynq Deployer</name>
+  <targetname>Board Support for Pynq-Z1</targetname>
+  <pilinfo>
+    <Name>Xilinx Zynq PIL</Name>
+    <Transport IPAddress="10.10.10.1" Port="22">
+      <Type>tcp/ip</Type>
+      <Name>Xilinx Zynq PIL</Name>
+      <IOInterfaceName>XCP on TCP/IP</IOInterfaceName>
+    </Transport>
+  </pilinfo>
+  <needsmainfcn>true</needsmainfcn>
+  <mainfcnsignature>int main(int argc, char **argv)</mainfcnsignature>
+  <token Name="ARM_CORTEX_A_BASE_ROOT_DIR" Value="codertarget.arm_cortex_a_base.internal.getSpPkgRootDir"/>
+  <token Name="ARM_CORTEX_A_ROOT_DIR" Value="codertarget.arm_cortex_a.internal.getSpPkgRootDir"/>
+  <token Name="ARM_CORTEX_A_INSTALLDIR" Value="codertarget.arm_cortex_a.internal.getSpPkgRootDir"/>
+  <token Name="SHARED_UTILS_ROOT" Value="codertarget.zynq.internal.getSpPkgRootDir"/>
+  <token Name="TARGET_ROOT" Value="matlabshared.target.boardsupportforpynqz1.getSpPkgRootDir"/>
+  <token Name="XILINXZYNQ_IPADDRESS" Value="codertarget.zynq.HardwareParameterInfo.getDeviceAddress"/>
+  <token Name="XILINXZYNQ_USERNAME" Value="codertarget.zynq.HardwareParameterInfo.getUsername"/>
+  <token Name="XILINXZYNQ_PASSWORD" Value="codertarget.zynq.HardwareParameterInfo.getPassword"/>
+  <token Name="XILINXZYNQ_BUILDDIR" Value="codertarget.zynq.HardwareParameterInfo.getBuilddir"/>
+  <token Name="ESB_TARGET_ROOT" Value="soc.zynq.internal.getRootFolder"/>
+  <token Name="TARGET_SYSROOT" Value="codertarget.linux.internal.SysrootInfo.getSysrootMacroFromModel(hObj)"/>
+  <token Name="ARMCORTEXABASE_ROOT_DIR" Value="matlabshared.target.xilinxzynq.getReferenceTargetRootFolder"/>
+  <token Name="XILINXZYNQ_ROOT_DIR" Value="matlabshared.target.boardsupportforpynqz1.getReferenceTargetRootFolder"/>
+  <token Name="XILINXZYNQ_ROOT_DIR" Value="matlabshared.target..getReferenceTargetRootFolder"/>
+  <onhardwareselecthook>codertarget.zynq.internal.onHardwareSelect</onhardwareselecthook>
+  <onbuildentryhook>codertarget.zynq.internal.onBuildEntryHook</onbuildentryhook>
+  <onaftercodegenhook>codertarget.zynq.internal.onAfterCodeGen</onaftercodegenhook>
+  <profiler BufferName="profilingData" DataLength="400" GetDataFcn="codertarget.zynq.internal.getProfileData" InstantPrint="0" PrintData="1" StoreCoreId="1" TimerDataType="uint32" TimerReadFcn="profileReadTimer" TimerTicksPerS="1000000000" TimerUpcounting="1">
+    <Name>Xilinx Zynq Profiler</Name>
+    <TimerSrcFile>$(ARM_CORTEX_A_BASE_ROOT_DIR)/src/profile_timer.c</TimerSrcFile>
+    <TimerIncludeFile>$(ARM_CORTEX_A_BASE_ROOT_DIR)/include/profile_timer.h</TimerIncludeFile>
+  </profiler>
+  <detectoverrun>false</detectoverrun>
+  <honorruntimestoprequest>true</honorruntimestoprequest>
+  <sdcardinbackgroundtask>false</sdcardinbackgroundtask>
+  <includestdio>true</includestdio>
+  <enableoneclick>true</enableoneclick>
+  <externalmodeinfo closefcn="" connectfcn="" postdisconnecttargetfcn="">
+    <name>XCP on TCP/IP</name>
+    <buildconfigurationinfofile>$(TARGET_ROOT)/registry/attributes/XCPonTCPIP_ExternalModeBuildConfig.xml</buildconfigurationinfofile>
+    <preconnectfcn>codertarget.zynq.internal.extmodeHooks(hObj,'preconnectfcn');</preconnectfcn>
+    <codertargetparameter callback="" name="Runtime.BuildAction">
+      <value>Build, load, and run</value>
+    </codertargetparameter>
+    <transport name="tcpip">
+      <ipaddress value="soc.sdk.internal.getIPAddress(hCS)">
+        <visible>false</visible>
+      </ipaddress>
+      <port value="17725">
+        <visible>true</visible>
+      </port>
+      <verbose>
+        <value>false</value>
+        <visible>true</visible>
+      </verbose>
+      <type>tcp/ip</type>
+      <iointerfacename>XCP on TCP/IP</iointerfacename>
+    </transport>
+    <setupfcn>codertarget.zynq.internal.extmodeHooks(hObj, 'setupfcn');</setupfcn>
+    <task default="background">
+      <inbackground>true</inbackground>
+      <inforeground>true</inforeground>
+      <visible>true</visible>
+    </task>
+  </externalmodeinfo>
+  <targetservice>
+    <iointerfacename>TCP/IP</iointerfacename>
+    <applicationservice linkflags="" name="StreamingProfilerAppSvc">
+      <library>$(ESB_TARGET_ROOT)/bin/libcodertarget_StreamingProfilerAppSvc.lib</library>
+    </applicationservice>
+    <applicationservice linkflags="" name="ToAsyncQueueAppSvc">
+      <library>$(SHARED_UTILS_ROOT)/bin/libcodertarget_ToAsyncQueueTgtAppSvc.lib</library>
+    </applicationservice>
+    <buildconfigurationinfofile>$(TARGET_ROOT)/registry/attributes/TargetService_BuildConfig.xml</buildconfigurationinfofile>
+  </targetservice>
+  <buildconfigurationinfofile>$(TARGET_ROOT)/registry/attributes/BuildConfigurationforLinaroAArch32Linux.xml</buildconfigurationinfofile>
+</productinfo>

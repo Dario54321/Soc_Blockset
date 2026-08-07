@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo>
+  <name>Pynq-Z1</name>
+  <memory>
+    <Name>DDRMEM1</Name>
+    <Size>512</Size>
+  </memory>
+  <processorcore>
+    <DeviceID>ARM Cortex-A9</DeviceID>
+    <Family>Zynq-7000</Family>
+    <Name>Core0</Name>
+    <Vendor>Xilinx</Vendor>
+  </processorcore>
+  <processorcore>
+    <DeviceID>ARM Cortex-A9</DeviceID>
+    <Family>Zynq-7000</Family>
+    <Name>Core1</Name>
+    <Vendor>Xilinx</Vendor>
+  </processorcore>
+  <fpgacore>
+    <Family>Zynq-7000</Family>
+    <Name>PL1</Name>
+    <Vendor>Xilinx</Vendor>
+    <procsys>
+      <Type>ProcessingSystem</Type>
+      <Name>PS</Name>
+      <TCLFile>$(TARGET_ROOT)/tcl/PynqZ1_PS.tcl</TCLFile>
+      <MasterInterfacePort>processing_system7_0/M_AXI_GP0</MasterInterfacePort>
+      <MasterInterfaceClockPort>processing_system7_0/FCLK_CLK0</MasterInterfaceClockPort>
+      <SlaveInterfacePort>processing_system7_0/S_AXI_HP0</SlaveInterfacePort>
+      <SlaveInterfaceClockPort>processing_system7_0/FCLK_CLK0</SlaveInterfaceClockPort>
+      <InterruptInterfacePort>processing_system7_0/IRQ_F2P</InterruptInterfacePort>
+      <FirstWriteLatencyMinMax>[0  30]</FirstWriteLatencyMinMax>
+      <FirstWriteLatencyDefault>5</FirstWriteLatencyDefault>
+      <LastWriteLatencyMinMax>[0  30]</LastWriteLatencyMinMax>
+      <LastWriteLatencyDefault>5</LastWriteLatencyDefault>
+      <FirstReadLatencyMinMax>[0  30]</FirstReadLatencyMinMax>
+      <FirstReadLatencyDefault>5</FirstReadLatencyDefault>
+      <LastReadLatencyMinMax>[0  30]</LastReadLatencyMinMax>
+      <LastReadLatencyDefault>5</LastReadLatencyDefault>
+      <SlaveInterfaceFrequencyMinMax>[1  200]</SlaveInterfaceFrequencyMinMax>
+      <SlaveInterfaceFrequencyDefault>200</SlaveInterfaceFrequencyDefault>
+      <SlaveInterfaceDataWidth>64</SlaveInterfaceDataWidth>
+      <SlaveInterfaceDataWidthDefault>64</SlaveInterfaceDataWidthDefault>
+      <ClockOutputPort>processing_system7_0/FCLK_CLK0</ClockOutputPort>
+      <ClockOutputFrequency>100</ClockOutputFrequency>
+      <ResetOutputPort>proc_sys_reset_0/peripheral_aresetn</ResetOutputPort>
+      <MappedMemoryName>DDRMEM1</MappedMemoryName>
+    </procsys>
+  </fpgacore>
+</productinfo>

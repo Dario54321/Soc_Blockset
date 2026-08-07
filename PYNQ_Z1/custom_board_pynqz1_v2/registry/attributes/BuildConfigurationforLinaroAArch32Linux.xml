@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo version="3.0">
+  <name>Build Configuration for Linaro AArch32 Linux</name>
+  <buildconfigurationinfo AssemblyFlags="" CPPCompileFlags="$(TARGET_SYSROOT)" CPPLinkFlags="$(TARGET_SYSROOT)" CompileFlags="$(TARGET_SYSROOT)" LinkFlags="$(TARGET_SYSROOT)">
+    <Defines>ARM_PROJECT</Defines>
+    <Defines>MW_EXTMODE_RECV_TIMEOUT_USEC=10</Defines>
+    <IncludePaths>$(SHARED_UTILS_ROOT)/src</IncludePaths>
+    <IncludePaths>$(SHARED_UTILS_ROOT)/include</IncludePaths>
+    <IncludePaths>$(SHARED_UTILS_ROOT)/blocks/include</IncludePaths>
+    <Name>Build Configuration for Linaro AArch32 Linux</Name>
+    <SupportedOperatingSystems>all</SupportedOperatingSystems>
+    <SupportedToolchains>all</SupportedToolchains>
+  </buildconfigurationinfo>
+</productinfo>

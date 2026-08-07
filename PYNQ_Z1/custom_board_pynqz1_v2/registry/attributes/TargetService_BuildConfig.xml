@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo version="3.0">
+  <buildconfigurationinfo AssemblyFlags="" CPPCompileFlags="" CPPLinkFlags="" Name="">
+    <CompileFlags>$(TARGET_SYSROOT) -DBOOST_CB_DISABLE_DEBUG -DBOOST_LOG_API_VERSION=200 -DBOOST_THREAD_FUTURE=unique_future -DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK</CompileFlags>
+    <LinkFlags>$(TARGET_SYSROOT) -lstdc++ -lboost_system -lboost_date_time -lboost_chrono -lboost_thread -lpthread -lboost_unit_test_framework</LinkFlags>
+    <Libraries>$(SHARED_UTILS_ROOT)/bin/libcodertarget_TargetServices.lib</Libraries>
+    <SupportedOperatingSystems>all</SupportedOperatingSystems>
+    <SupportedToolchains>Linaro AArch32 Linux v6.3.1</SupportedToolchains>
+  </buildconfigurationinfo>
+</productinfo>

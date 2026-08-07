@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<productinfo version="3.0">
+  <NumOfInterfaces>1</NumOfInterfaces>
+  <TotalNumInterrupts>16</TotalNumInterrupts>
+  <InterruptInterface>
+    <InterfacePortName>processing_system7_0/IRQ_F2P</InterfacePortName>
+    <InterfacePortWidth>16</InterfacePortWidth>
+  </InterruptInterface>
+</productinfo>
