@@ -86,13 +86,19 @@ conta per verificare che la board sia a posto.
 | DIP switch (2) | `M20, M19` | — |
 | Pulsanti (3 di 4) | `D20, L20, L19` | `D19` (btn0) **escluso di proposito** |
 
-**Perché solo 3 pulsanti su 4**: la Pynq-Z1 non ha un pin di reset di
-sistema dedicato (verificato: nessun componente/interfaccia di tipo reset
-in tutto `board.xml`). `D19` (il primo pulsante) è usato come reset — se
-venisse esposto *anche* come pulsante GPIO normale, lo stesso pin
-finirebbe con due vincoli fisici (`LOC`) diversi nel file di constraint
-generato, un conflitto che Vivado rifiuterebbe in fase di
-place/route. **Non aggiungere mai un `PushButton` su `D19`.**
+**Perché solo 3 pulsanti su 4**: la Pynq-Z1 ha un vero pulsante di reset
+fisico (`SRST`), ma è collegato al pin **MIO 12** dello Zynq (lato
+Processing System) — un tipo di connessione diversa dai pin PL/fabric
+usati da LED, switch e pulsanti GPIO, e non instradabile con un vincolo
+`LOC` come loro (per questo non compare in `board.xml`, che elenca solo
+interfacce lato PL). Il componente "Reset" richiesto dalla registrazione
+SoC Blockset è invece specificamente un segnale **lato PL**: la Pynq-Z1
+non ne definisce uno dedicato, quindi si usa `D19` (il primo pulsante)
+come workaround. Se venisse esposto *anche* come pulsante GPIO normale,
+lo stesso pin finirebbe con due vincoli fisici (`LOC`) diversi nel file
+di constraint generato, un conflitto che Vivado rifiuterebbe in fase di
+place/route. **Non aggiungere mai un `PushButton` su `D19`.** Dettagli e
+fonti in [STORIA_TECNICA.md](STORIA_TECNICA.md#5-perché-d19-è-riservato-non-un-dettaglio-da-ignorare).
 
 Fonte dei dati: `Vivado\2022.1\data\boards\board_files\pynq-z1\1.0\
 {board.xml, part0_pins.xml}` (non ridistribuiti in questo repository —

@@ -208,9 +208,16 @@ anche se vuoto).
 - **3 pulsanti** (non 4): `D20, L20, L19` — **`D19` (btn0) escluso di
   proposito**, vedi §5.
 
-`ActiveHigh = true` per tutti (marcato `[DEDOTTO]`: `board.xml` non
-specifica la polarità — convenzione standard Digilent per questa
-famiglia di board, non verificato su hardware fisico).
+`ActiveHigh = true` per tutti — inizialmente marcato `[DEDOTTO]`
+(`board.xml` non specifica la polarità), **poi confermato** dal [PYNQ-Z1
+Reference Manual](https://digilent.com/reference/programmable-logic/pynq-z1/reference-manual)
+Digilent (fonte primaria, non i file Vivado): i 4 LED sono
+"anode-connected... si accendono con un livello logico alto", i 4
+pulsanti "generano un output basso a riposo, alto solo quando premuti" —
+`ActiveHigh = true` è quindi corretto per LED e pulsanti, non solo
+un'ipotesi ragionevole. Per i DIP switch il manuale non è stato
+controllato altrettanto a fondo: resta un'assunzione per analogia,
+ragionevole ma non verificata quanto le altre due.
 
 ## 4. Prova finale: cross-compilazione ARM reale riuscita
 
@@ -245,11 +252,33 @@ tutto verificato.
 
 ## 5. Perché `D19` è riservato (non un dettaglio da ignorare)
 
-La Pynq-Z1 **non ha un pin di reset di sistema dedicato** — verificato
-con una ricerca esaustiva in `board.xml` (nessun componente/interfaccia
-di tipo reset da nessuna parte). Lo script di creazione board (§2) usa
-il primo pulsante utente, pin `D19`, come reset — un workaround
-esplicito, non un vero pulsante di reset del board.
+**Precisazione importante** (verificata dopo la prima stesura di questo
+documento, confrontando col vero reference manual Digilent, non solo coi
+file Vivado): la Pynq-Z1 **ha** un pulsante di reset di sistema fisico,
+etichettato **`SRST`** sul PCB — ma è collegato al pin **MIO 12** dello
+Zynq (Processing System), non a un pin lato PL/fabric come `D19`. I pin
+`MIO` sono un tipo di connessione diversa dai pin PL generici che
+compaiono in `board.xml`/`part0_pins.xml` (quei file elencano solo le
+interfacce lato PL, con vincolo `LOC` su un pin FPGA — `SRST`/MIO12 non
+c'è per questo, non perché non esista: è configurato dentro il blocco
+Zynq stesso, non come porta HDL top-level con `LOC`). Fonte: [PYNQ-Z1
+Reference Manual](https://digilent.com/reference/programmable-logic/pynq-z1/reference-manual)
+(Digilent).
+
+**Perché il workaround su `D19` resta comunque necessario**: il
+componente `Reset` che si registra su un `soc.sdk.Hardware` (via
+`addNewReset`) è specificamente un segnale di reset **lato PL/fabric**
+— alimenta la IP `proc_sys_reset` nel block design generato da SoC
+Builder, esattamente come `Clock`. `SRST`/MIO12 è un reset di sistema
+gestito internamente dallo Zynq PS, non un segnale PL instradabile con
+un vincolo `LOC` — non è utilizzabile per questo scopo, quindi non
+cambia nulla nella scelta fatta: serve comunque un pin PL da usare come
+reset lato fabric, e la Pynq-Z1 non ne definisce uno dedicato in
+`board.xml` (verificato con una ricerca esaustiva del file — nessun
+componente/interfaccia di tipo reset lato PL da nessuna parte). Lo
+script di creazione board (§2) usa perciò il primo pulsante utente, pin
+`D19`, come reset PL — un workaround esplicito, non un vero pulsante di
+reset del board.
 
 Se in futuro si registra anche `D19` come `PushButton` (per esempio per
 avere tutti e 4 i pulsanti disponibili), quel pin fisico riceverebbe due
